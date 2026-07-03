@@ -28,4 +28,20 @@ model Book {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  questions   Question[]
+}
+
+model Question {
+  id            Int      @id @default(autoincrement())
+  bookId        Int
+  text          String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctOption String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
 }
