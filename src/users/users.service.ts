@@ -1,12 +1,21 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { CreateUserDTO } from './create-user-dto';
-import { UserResponse } from './user';
+import { AuthResponse, UserResponse } from './user';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma.service';
+import { SignInDTO } from './sign-in-dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async encryptPassword(plainText: string, saltRounds: number): Promise<string> {
     return await bcrypt.hash(plainText, saltRounds);
@@ -36,6 +45,37 @@ export class UsersService {
 
       throw error;
     }
+  }
+
+  async signIn(payload: SignInDTO): Promise<AuthResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email: payload.email,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const isPasswordValid = await bcrypt.compare(payload.password, user.password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      accessToken: await this.signToken(user.id, user.email),
+    };
+  }
+
+  private async signToken(userId: number, email: string): Promise<string> {
+    return this.jwtService.signAsync({
+      sub: userId,
+      email,
+    });
   }
 
   private isUniqueConstraintError(error: unknown): boolean {

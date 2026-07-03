@@ -8,11 +8,12 @@ import { UsersService } from './users.service';
 
 describe('UsersController', () => {
   let controller: UsersController;
-  let usersService: { signup: jest.Mock };
+  let usersService: { signup: jest.Mock; signIn: jest.Mock };
 
   beforeEach(async () => {
     usersService = {
       signup: jest.fn(),
+      signIn: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -46,5 +47,36 @@ describe('UsersController', () => {
       email: payload.email,
     });
     expect(usersService.signup).toHaveBeenCalledWith(payload);
+  });
+
+  it('should delegate sign in to the users service', async () => {
+    const payload = {
+      email: 'user@example.com',
+      password: 'StrongPass123!',
+    };
+
+    usersService.signIn.mockResolvedValue({
+      id: 1,
+      email: payload.email,
+      accessToken: 'jwt-token',
+    });
+
+    await expect(controller.signIn(payload)).resolves.toEqual({
+      id: 1,
+      email: payload.email,
+      accessToken: 'jwt-token',
+    });
+    expect(usersService.signIn).toHaveBeenCalledWith(payload);
+  });
+
+  it('should return the authenticated user', () => {
+    const request = {
+      user: {
+        id: 1,
+        email: 'user@example.com',
+      },
+    };
+
+    expect(controller.me(request as never)).toEqual(request.user);
   });
 });
