@@ -3,20 +3,20 @@ jest.mock('../prisma.service', () => ({
 }));
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { BooksService } from './books.service';
+import { QuestionsService } from './questions.service';
 import { PrismaService } from '../prisma.service';
 
-describe('BooksService', () => {
-  let service: BooksService;
+describe('QuestionsService', () => {
+  let service: QuestionsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        BooksService,
+        QuestionsService,
         {
           provide: PrismaService,
           useValue: {
-            book: {
+            question: {
               create: jest.fn(),
               findMany: jest.fn(),
               findUnique: jest.fn(),
@@ -26,7 +26,7 @@ describe('BooksService', () => {
       ],
     }).compile();
 
-    service = module.get<BooksService>(BooksService);
+    service = module.get<QuestionsService>(QuestionsService);
   });
 
   it('should be defined', () => {

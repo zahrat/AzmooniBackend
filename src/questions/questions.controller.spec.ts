@@ -1,15 +1,14 @@
 jest.mock('../prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
-
 import { Test, TestingModule } from '@nestjs/testing';
-import { BooksController } from './books.controller';
-import { BooksService } from './books.service';
+import { QuestionsController } from './questions.controller';
+import { QuestionsService } from './questions.service';
 
-describe('BooksController', () => {
-  let controller: BooksController;
+describe('QuestionsController', () => {
+  let controller: QuestionsController;
 
-  const mockBooksService = {
+  const mockQuestionsService = {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
@@ -17,16 +16,16 @@ describe('BooksController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [BooksController],
+      controllers: [QuestionsController],
       providers: [
         {
-          provide: BooksService,
-          useValue: mockBooksService,
+          provide: QuestionsService,
+          useValue: mockQuestionsService,
         },
       ],
     }).compile();
 
-    controller = module.get<BooksController>(BooksController);
+    controller = module.get<QuestionsController>(QuestionsController);
   });
 
   it('should be defined', () => {
