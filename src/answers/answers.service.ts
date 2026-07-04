@@ -30,4 +30,22 @@ export class AnswersService {
       where: { question: { bookId }, userId },
     });
   }
+
+  async findWrongAnswersByBookId(userId: number, bookId: number) {
+    return await this.prisma.userAnswer.findMany({
+      where: {
+        userId,
+        isCorrect: false,
+        question: {
+          bookId,
+        },
+      },
+      include: {
+        question: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 }

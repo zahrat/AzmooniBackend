@@ -30,4 +30,16 @@ export class AnswersController {
   ) {
     return this.answersService.findAll(request.user.id, bookId);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/wrong/book/:bookId')
+  getWrongAnswersByBookId(
+    @Req() request,
+    @Param('bookId', ParseIntPipe) bookId: number,
+  ) {
+    return this.answersService.findWrongAnswersByBookId(
+      request.user.id,
+      bookId,
+    );
+  }
 }
