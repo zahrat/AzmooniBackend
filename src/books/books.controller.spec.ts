@@ -12,6 +12,7 @@ describe('BooksController', () => {
   const mockBooksService = {
     create: jest.fn(),
     findAll: jest.fn(),
+    findWrongBooks: jest.fn(),
     findOne: jest.fn(),
   };
 
@@ -31,5 +32,13 @@ describe('BooksController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('returns books with wrong answers for the authenticated user', () => {
+    const books = [{ id: 1, wrongAnswersCount: 2 }];
+    mockBooksService.findWrongBooks.mockReturnValue(books);
+
+    expect(controller.getWrongBooks({ user: { id: 7 } })).toBe(books);
+    expect(mockBooksService.findWrongBooks).toHaveBeenCalledWith(7);
   });
 });
