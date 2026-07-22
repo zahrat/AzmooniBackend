@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateQuestionDTO } from './create-question-dto';
+import { QuestionMode } from './question-mode';
 
 @Injectable()
 export class QuestionsService {
@@ -12,10 +17,32 @@ export class QuestionsService {
     });
   }
 
-  async findAll(bookId: number) {
+  async findAll(
+    bookId: number,
+    mode: QuestionMode = QuestionMode.All,
+    userId?: number,
+  ) {
+    if (mode === QuestionMode.Wrong && userId === undefined) {
+      throw new UnauthorizedException(
+        'Authentication is required to fetch wrong questions',
+      );
+    }
+
     return await this.prisma.question.findMany({
       orderBy: { createdAt: 'desc' },
-      where: { bookId },
+      where: {
+        bookId,
+        ...(mode === QuestionMode.Wrong
+          ? {
+              answers: {
+                some: {
+                  userId,
+                  isCorrect: false,
+                },
+              },
+            }
+          : {}),
+      },
     });
   }
 
