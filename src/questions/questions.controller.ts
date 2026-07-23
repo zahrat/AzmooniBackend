@@ -11,7 +11,9 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+
 import type { Request } from 'express';
+import { JwtAuthGuard } from '../users/jwt-auth.guard';
 import type { JwtUser } from '../users/user';
 import { CreateQuestionDTO } from './create-question-dto';
 import { QuestionMode } from './question-mode';
@@ -50,4 +52,11 @@ export class QuestionsController {
   getByQuestionId(@Param('id', ParseIntPipe) id: number) {
     return this.questionsService.findOne(id);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/favorite')
+  favorite(
+    @Req() request: RequestWithUser,
+    @Param('id', ParseIntPipe) questionId: number,
+  ) {}
 }

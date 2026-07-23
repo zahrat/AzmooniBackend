@@ -21,6 +21,7 @@ model User {
   createdAt DateTime @default(now())
 
   answers UserAnswer[]
+  favoriteQuestions FavoriteQuestion[]
 }
 
 model Book {
@@ -46,6 +47,7 @@ model Question {
 
   book    Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
   answers UserAnswer[]
+  favoriteQuestions FavoriteQuestion[]
 }
 
 model UserAnswer {
@@ -58,4 +60,15 @@ model UserAnswer {
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model FavoriteQuestion {
+  userId     Int
+  questionId Int
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
 }

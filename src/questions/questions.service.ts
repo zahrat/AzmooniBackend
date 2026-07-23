@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -28,7 +29,7 @@ export class QuestionsService {
       );
     }
 
-    return await this.prisma.question.findMany({
+    const questions = await this.prisma.question.findMany({
       orderBy: { createdAt: 'desc' },
       where: {
         bookId,
@@ -43,6 +44,28 @@ export class QuestionsService {
             }
           : {}),
       },
+      ...(userId !== undefined
+        ? {
+            include: {
+              favoriteQuestions: {
+                where: { userId },
+                select: { userId: true },
+              },
+            },
+          }
+        : {}),
+    });
+
+    return questions.map((question) => {
+      const { favoriteQuestions = [], ...questionData } =
+        question as typeof question & {
+          favoriteQuestions?: { userId: number }[];
+        };
+
+      return {
+        ...questionData,
+        isFavorite: favoriteQuestions.length > 0,
+      };
     });
   }
 
@@ -51,5 +74,60 @@ export class QuestionsService {
 
     if (!question) throw new NotFoundException('Question not found');
     return question;
+  }
+
+  async findFavorites(userId: number, bookId?: number) {
+    const favorites = await this.prisma.favoriteQuestion.findMany({
+      where: {
+        userId,
+        ...(bookId !== undefined ? { question: { bookId } } : {}),
+      },
+      select: {
+        question: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return favorites.map(({ question }) => question);
+  }
+
+  async favorite(userId: number, questionId: number) {
+    const isExist = await this.prisma.favoriteQuestion.findUnique({
+      where: {
+        userId_questionId: {
+          userId,
+          questionId,
+        },
+      },
+    });
+
+    if (isExist) {
+      throw new ConflictException('Question is already favorited');
+    }
+
+    return await this.prisma.favoriteQuestion.create({
+      data: { userId, questionId },
+    });
+  }
+
+  async unfavorite(userId: number, questionId: number) {
+    const isExist = await this.prisma.favoriteQuestion.findUnique({
+      where: {
+        userId_questionId: {
+          userId,
+          questionId,
+        },
+      },
+    });
+
+    if (!isExist) {
+      throw new NotFoundException('Question is not favorited');
+    }
+
+    return await this.prisma.favoriteQuestion.delete({
+      where: { userId_questionId: { userId, questionId } },
+    });
   }
 }

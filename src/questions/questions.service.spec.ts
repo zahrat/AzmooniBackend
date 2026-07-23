@@ -12,7 +12,7 @@ describe('QuestionsService', () => {
   let findMany: jest.Mock;
 
   beforeEach(async () => {
-    findMany = jest.fn();
+    findMany = jest.fn().mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -60,7 +60,25 @@ describe('QuestionsService', () => {
           },
         },
       },
+      include: {
+        favoriteQuestions: {
+          where: { userId: 7 },
+          select: { userId: true },
+        },
+      },
     });
+  });
+
+  it('adds the favorite status for the authenticated user', async () => {
+    findMany.mockResolvedValueOnce([
+      { id: 1, favoriteQuestions: [{ userId: 7 }] },
+      { id: 2, favoriteQuestions: [] },
+    ]);
+
+    await expect(service.findAll(12, QuestionMode.All, 7)).resolves.toEqual([
+      { id: 1, isFavorite: true },
+      { id: 2, isFavorite: false },
+    ]);
   });
 
   it('rejects wrong mode without an authenticated user', async () => {
