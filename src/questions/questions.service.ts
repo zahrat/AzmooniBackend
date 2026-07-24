@@ -77,6 +77,9 @@ export class QuestionsService {
   }
 
   async findFavorites(userId: number, bookId?: number) {
+    if (!userId) {
+      throw new NotFoundException('کاربر لاگین نیست!');
+    }
     const favorites = await this.prisma.favoriteQuestion.findMany({
       where: {
         userId,
@@ -93,7 +96,10 @@ export class QuestionsService {
     return favorites.map(({ question }) => question);
   }
 
-  async favorite(userId: number, questionId: number) {
+  async favorite(questionId: number, userId?: number) {
+    if (!userId) {
+      throw new NotFoundException('کاربر لاگین نیست!');
+    }
     const isExist = await this.prisma.favoriteQuestion.findUnique({
       where: {
         userId_questionId: {
@@ -112,7 +118,8 @@ export class QuestionsService {
     });
   }
 
-  async unfavorite(userId: number, questionId: number) {
+  async unfavorite(questionId: number, userId?: number) {
+    if (!userId) throw new NotFoundException('کاربر لاگین نیست');
     const isExist = await this.prisma.favoriteQuestion.findUnique({
       where: {
         userId_questionId: {

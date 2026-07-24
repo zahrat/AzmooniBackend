@@ -58,5 +58,25 @@ export class QuestionsController {
   favorite(
     @Req() request: RequestWithUser,
     @Param('id', ParseIntPipe) questionId: number,
-  ) {}
+  ) {
+    return this.questionsService.favorite(questionId, request.user?.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/unFavorite')
+  unFavorite(
+    @Req() request: RequestWithUser,
+    @Param('id', ParseIntPipe) questionId: number,
+  ) {
+    return this.questionsService.unfavorite(questionId, request.user?.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('favorites/:bookId')
+  getFavorite(
+    @Req() request: RequestWithUser,
+    @Param('bookId', ParseIntPipe) bookId: number,
+  ) {
+    return this.questionsService.findFavorites(request.user?.id, bookId);
+  }
 }
