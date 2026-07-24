@@ -24,6 +24,10 @@ interface RequestWithUser extends Request {
   user?: JwtUser;
 }
 
+interface AuthenticatedRequest extends Request {
+  user: JwtUser;
+}
+
 @Controller('questions')
 export class QuestionsController {
   constructor(private readonly questionsService: QuestionsService) {}
@@ -56,27 +60,27 @@ export class QuestionsController {
   @UseGuards(JwtAuthGuard)
   @Post(':id/favorite')
   favorite(
-    @Req() request: RequestWithUser,
+    @Req() request: AuthenticatedRequest,
     @Param('id', ParseIntPipe) questionId: number,
   ) {
-    return this.questionsService.favorite(questionId, request.user?.id);
+    return this.questionsService.favorite(questionId, request.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post(':id/unFavorite')
+  @Post(':id/unfavorite')
   unFavorite(
-    @Req() request: RequestWithUser,
+    @Req() request: AuthenticatedRequest,
     @Param('id', ParseIntPipe) questionId: number,
   ) {
-    return this.questionsService.unfavorite(questionId, request.user?.id);
+    return this.questionsService.unfavorite(questionId, request.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('favorites/:bookId')
   getFavorite(
-    @Req() request: RequestWithUser,
+    @Req() request: AuthenticatedRequest,
     @Param('bookId', ParseIntPipe) bookId: number,
   ) {
-    return this.questionsService.findFavorites(request.user?.id, bookId);
+    return this.questionsService.findFavorites(request.user.id, bookId);
   }
 }

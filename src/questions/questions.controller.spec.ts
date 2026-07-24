@@ -12,9 +12,14 @@ describe('QuestionsController', () => {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
+    favorite: jest.fn(),
+    unfavorite: jest.fn(),
+    findFavorites: jest.fn(),
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [QuestionsController],
       providers: [
@@ -30,5 +35,29 @@ describe('QuestionsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('favorites a question for the authenticated user', async () => {
+    const request = { user: { id: 7, email: 'user@example.com' } };
+
+    await controller.favorite(request as never, 12);
+
+    expect(mockQuestionsService.favorite).toHaveBeenCalledWith(12, 7);
+  });
+
+  it('unfavorites a question for the authenticated user', async () => {
+    const request = { user: { id: 7, email: 'user@example.com' } };
+
+    await controller.unFavorite(request as never, 12);
+
+    expect(mockQuestionsService.unfavorite).toHaveBeenCalledWith(12, 7);
+  });
+
+  it('returns favorite questions for a book and authenticated user', async () => {
+    const request = { user: { id: 7, email: 'user@example.com' } };
+
+    await controller.getFavorite(request as never, 3);
+
+    expect(mockQuestionsService.findFavorites).toHaveBeenCalledWith(7, 3);
   });
 });
