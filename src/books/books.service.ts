@@ -43,6 +43,39 @@ export class BooksService {
     }));
   }
 
+  async findFavoriteBooks(userId: number) {
+    const books = await this.prisma.book.findMany({
+      where: {
+        questions: {
+          some: {
+            favoriteQuestions: {
+              some: { userId },
+            },
+          },
+        },
+      },
+      include: {
+        questions: {
+          select: {
+            favoriteQuestions: {
+              where: { userId },
+              select: { questionId: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return books.map(({ questions, ...book }) => ({
+      ...book,
+      favoriteQuestionsCount: questions.reduce(
+        (count, question) => count + question.favoriteQuestions.length,
+        0,
+      ),
+    }));
+  }
+
   async findOne(id: number) {
     const book = await this.prisma.book.findUnique({ where: { id } });
 

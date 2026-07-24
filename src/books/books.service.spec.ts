@@ -73,4 +73,45 @@ describe('BooksService', () => {
       orderBy: { createdAt: 'desc' },
     });
   });
+
+  it('returns only books with favorite questions and their count', async () => {
+    findMany.mockResolvedValue([
+      {
+        id: 1,
+        title: 'Book 1',
+        questions: [
+          { favoriteQuestions: [{ questionId: 10 }] },
+          {
+            favoriteQuestions: [{ questionId: 11 }, { questionId: 12 }],
+          },
+        ],
+      },
+    ]);
+
+    await expect(service.findFavoriteBooks(7)).resolves.toEqual([
+      { id: 1, title: 'Book 1', favoriteQuestionsCount: 3 },
+    ]);
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        questions: {
+          some: {
+            favoriteQuestions: {
+              some: { userId: 7 },
+            },
+          },
+        },
+      },
+      include: {
+        questions: {
+          select: {
+            favoriteQuestions: {
+              where: { userId: 7 },
+              select: { questionId: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  });
 });

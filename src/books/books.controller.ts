@@ -8,9 +8,15 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../users/jwt-auth.guard';
+import type { JwtUser } from '../users/user';
 import { BooksService } from './books.service';
 import { CreateBookDTO } from './create-book-dto';
+
+interface AuthenticatedRequest extends Request {
+  user: JwtUser;
+}
 
 @Controller('books')
 export class BooksController {
@@ -23,8 +29,14 @@ export class BooksController {
 
   @UseGuards(JwtAuthGuard)
   @Get('wrong')
-  getWrongBooks(@Req() request) {
+  getWrongBooks(@Req() request: AuthenticatedRequest) {
     return this.bookService.findWrongBooks(request.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('favorites')
+  getFavoriteBooks(@Req() request: AuthenticatedRequest) {
+    return this.bookService.findFavoriteBooks(request.user.id);
   }
 
   @Get(':id')
