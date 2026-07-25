@@ -2,7 +2,7 @@ import { IsIn, IsInt, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateQuestionDTO {
   @IsInt()
-  bookId: number;
+  chapterId: number;
 
   @IsNotEmpty()
   @IsString()

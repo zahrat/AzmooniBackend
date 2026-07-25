@@ -27,7 +27,7 @@ export class AnswersService {
   async findAll(userId: number, bookId: number) {
     return await this.prisma.userAnswer.findMany({
       orderBy: { createdAt: 'desc' },
-      where: { question: { bookId }, userId },
+      where: { question: { chapter: { bookId } }, userId },
     });
   }
 
@@ -37,7 +37,7 @@ export class AnswersService {
         userId,
         isCorrect: false,
         question: {
-          bookId,
+          chapter: { bookId },
         },
       },
       include: {

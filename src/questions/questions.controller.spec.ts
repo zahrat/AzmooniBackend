@@ -11,6 +11,7 @@ describe('QuestionsController', () => {
   const mockQuestionsService = {
     create: jest.fn(),
     findAll: jest.fn(),
+    findByChapter: jest.fn(),
     findOne: jest.fn(),
     favorite: jest.fn(),
     unfavorite: jest.fn(),
@@ -59,5 +60,17 @@ describe('QuestionsController', () => {
     await controller.getFavorite(request as never, 3);
 
     expect(mockQuestionsService.findFavorites).toHaveBeenCalledWith(7, 3);
+  });
+
+  it('returns questions for a chapter', async () => {
+    const request = { user: { id: 7, email: 'user@example.com' } };
+
+    await controller.getByChapterId(request as never, 3, 'all' as never);
+
+    expect(mockQuestionsService.findByChapter).toHaveBeenCalledWith(
+      3,
+      'all',
+      7,
+    );
   });
 });

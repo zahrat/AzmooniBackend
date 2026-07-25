@@ -52,6 +52,25 @@ export class QuestionsController {
     return this.questionsService.findAll(bookId, mode, request.user?.id);
   }
 
+  @UseGuards(QuestionsModeAuthGuard)
+  @Get('/chapter/:chapterId')
+  getByChapterId(
+    @Req() request: RequestWithUser,
+    @Param('chapterId', ParseIntPipe) chapterId: number,
+    @Query(
+      'mode',
+      new DefaultValuePipe(QuestionMode.All),
+      new ParseEnumPipe(QuestionMode),
+    )
+    mode: QuestionMode,
+  ) {
+    return this.questionsService.findByChapter(
+      chapterId,
+      mode,
+      request.user?.id,
+    );
+  }
+
   @Get(':id')
   getByQuestionId(@Param('id', ParseIntPipe) id: number) {
     return this.questionsService.findOne(id);

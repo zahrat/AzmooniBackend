@@ -13,6 +13,15 @@ export class QuestionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(payload: CreateQuestionDTO) {
+    const chapter = await this.prisma.chapter.findUnique({
+      where: { id: payload.chapterId },
+      select: { id: true },
+    });
+
+    if (!chapter) {
+      throw new NotFoundException('Chapter not found');
+    }
+
     return await this.prisma.question.create({
       data: payload,
     });
@@ -32,7 +41,58 @@ export class QuestionsService {
     const questions = await this.prisma.question.findMany({
       orderBy: { createdAt: 'desc' },
       where: {
-        bookId,
+        chapter: { bookId },
+        ...(mode === QuestionMode.Wrong
+          ? {
+              answers: {
+                some: {
+                  userId,
+                  isCorrect: false,
+                },
+              },
+            }
+          : {}),
+      },
+      ...(userId !== undefined
+        ? {
+            include: {
+              favoriteQuestions: {
+                where: { userId },
+                select: { userId: true },
+              },
+            },
+          }
+        : {}),
+    });
+
+    return questions.map((question) => {
+      const { favoriteQuestions = [], ...questionData } =
+        question as typeof question & {
+          favoriteQuestions?: { userId: number }[];
+        };
+
+      return {
+        ...questionData,
+        isFavorite: favoriteQuestions.length > 0,
+      };
+    });
+  }
+
+  async findByChapter(
+    chapterId: number,
+    mode: QuestionMode = QuestionMode.All,
+    userId?: number,
+  ) {
+    if (mode === QuestionMode.Wrong && userId === undefined) {
+      throw new UnauthorizedException(
+        'Authentication is required to fetch wrong questions',
+      );
+    }
+
+    const questions = await this.prisma.question.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        chapterId,
         ...(mode === QuestionMode.Wrong
           ? {
               answers: {
@@ -80,7 +140,7 @@ export class QuestionsService {
     const favorites = await this.prisma.favoriteQuestion.findMany({
       where: {
         userId,
-        ...(bookId !== undefined ? { question: { bookId } } : {}),
+        ...(bookId !== undefined ? { question: { chapter: { bookId } } } : {}),
       },
       select: {
         question: true,

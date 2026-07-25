@@ -40,9 +40,13 @@ describe('BooksService', () => {
       {
         id: 1,
         title: 'Book 1',
-        questions: [
-          { answers: [{ id: 10 }, { id: 11 }] },
-          { answers: [{ id: 12 }] },
+        chapters: [
+          {
+            questions: [
+              { answers: [{ id: 10 }, { id: 11 }] },
+              { answers: [{ id: 12 }] },
+            ],
+          },
         ],
       },
     ]);
@@ -52,20 +56,28 @@ describe('BooksService', () => {
     ]);
     expect(findMany).toHaveBeenCalledWith({
       where: {
-        questions: {
+        chapters: {
           some: {
-            answers: {
-              some: { userId: 7, isCorrect: false },
+            questions: {
+              some: {
+                answers: {
+                  some: { userId: 7, isCorrect: false },
+                },
+              },
             },
           },
         },
       },
       include: {
-        questions: {
+        chapters: {
           select: {
-            answers: {
-              where: { userId: 7, isCorrect: false },
-              select: { id: true },
+            questions: {
+              select: {
+                answers: {
+                  where: { userId: 7, isCorrect: false },
+                  select: { id: true },
+                },
+              },
             },
           },
         },
@@ -79,10 +91,14 @@ describe('BooksService', () => {
       {
         id: 1,
         title: 'Book 1',
-        questions: [
-          { favoriteQuestions: [{ questionId: 10 }] },
+        chapters: [
           {
-            favoriteQuestions: [{ questionId: 11 }, { questionId: 12 }],
+            questions: [
+              { favoriteQuestions: [{ questionId: 10 }] },
+              {
+                favoriteQuestions: [{ questionId: 11 }, { questionId: 12 }],
+              },
+            ],
           },
         ],
       },
@@ -93,20 +109,28 @@ describe('BooksService', () => {
     ]);
     expect(findMany).toHaveBeenCalledWith({
       where: {
-        questions: {
+        chapters: {
           some: {
-            favoriteQuestions: {
-              some: { userId: 7 },
+            questions: {
+              some: {
+                favoriteQuestions: {
+                  some: { userId: 7 },
+                },
+              },
             },
           },
         },
       },
       include: {
-        questions: {
+        chapters: {
           select: {
-            favoriteQuestions: {
-              where: { userId: 7 },
-              select: { questionId: true },
+            questions: {
+              select: {
+                favoriteQuestions: {
+                  where: { userId: 7 },
+                  select: { questionId: true },
+                },
+              },
             },
           },
         },

@@ -10,9 +10,13 @@ import { PrismaService } from '../prisma.service';
 describe('QuestionsService', () => {
   let service: QuestionsService;
   let findMany: jest.Mock;
+  let create: jest.Mock;
+  let findChapter: jest.Mock;
 
   beforeEach(async () => {
     findMany = jest.fn().mockResolvedValue([]);
+    create = jest.fn();
+    findChapter = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -20,8 +24,11 @@ describe('QuestionsService', () => {
         {
           provide: PrismaService,
           useValue: {
+            chapter: {
+              findUnique: findChapter,
+            },
             question: {
-              create: jest.fn(),
+              create,
               findMany,
               findUnique: jest.fn(),
             },
@@ -37,13 +44,92 @@ describe('QuestionsService', () => {
     expect(service).toBeDefined();
   });
 
+  it('creates a question for an existing chapter', async () => {
+    const payload = {
+      chapterId: 3,
+      text: 'Question?',
+      optionA: 'A',
+      optionB: 'B',
+      optionC: 'C',
+      optionD: 'D',
+      correctOption: 'A',
+    };
+    findChapter.mockResolvedValue({ id: 3 });
+    create.mockResolvedValue({ id: 1, ...payload });
+
+    await expect(service.create(payload)).resolves.toEqual({
+      id: 1,
+      ...payload,
+    });
+    expect(findChapter).toHaveBeenCalledWith({
+      where: { id: 3 },
+      select: { id: true },
+    });
+    expect(create).toHaveBeenCalledWith({ data: payload });
+  });
+
+  it('rejects a question for a missing chapter', async () => {
+    findChapter.mockResolvedValue(null);
+
+    await expect(
+      service.create({
+        chapterId: 3,
+        text: 'Question?',
+        optionA: 'A',
+        optionB: 'B',
+        optionC: 'C',
+        optionD: 'D',
+        correctOption: 'A',
+      }),
+    ).rejects.toThrow('Chapter not found');
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('returns every question for all mode', async () => {
     await service.findAll(12, QuestionMode.All);
 
     expect(findMany).toHaveBeenCalledWith({
       orderBy: { createdAt: 'desc' },
-      where: { bookId: 12 },
+      where: { chapter: { bookId: 12 } },
     });
+  });
+
+  it('returns questions for a chapter', async () => {
+    await service.findByChapter(3, QuestionMode.All);
+
+    expect(findMany).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'desc' },
+      where: { chapterId: 3 },
+    });
+  });
+
+  it('filters wrong chapter questions by the authenticated user', async () => {
+    await service.findByChapter(3, QuestionMode.Wrong, 7);
+
+    expect(findMany).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        chapterId: 3,
+        answers: {
+          some: {
+            userId: 7,
+            isCorrect: false,
+          },
+        },
+      },
+      include: {
+        favoriteQuestions: {
+          where: { userId: 7 },
+          select: { userId: true },
+        },
+      },
+    });
+  });
+
+  it('rejects wrong chapter questions without authentication', async () => {
+    await expect(service.findByChapter(3, QuestionMode.Wrong)).rejects.toThrow(
+      'Authentication is required to fetch wrong questions',
+    );
   });
 
   it('filters wrong questions by the authenticated user', async () => {
@@ -52,7 +138,7 @@ describe('QuestionsService', () => {
     expect(findMany).toHaveBeenCalledWith({
       orderBy: { createdAt: 'desc' },
       where: {
-        bookId: 12,
+        chapter: { bookId: 12 },
         answers: {
           some: {
             userId: 7,

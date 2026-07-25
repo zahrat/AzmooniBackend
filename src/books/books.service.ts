@@ -7,26 +7,37 @@ export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
-    return await this.prisma.book.findMany({ orderBy: { createdAt: 'desc' } });
+    return await this.prisma.book.findMany({
+      include: { chapters: { orderBy: { order: 'asc' } } },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findWrongBooks(userId: number) {
     const books = await this.prisma.book.findMany({
       where: {
-        questions: {
+        chapters: {
           some: {
-            answers: {
-              some: { userId, isCorrect: false },
+            questions: {
+              some: {
+                answers: {
+                  some: { userId, isCorrect: false },
+                },
+              },
             },
           },
         },
       },
       include: {
-        questions: {
+        chapters: {
           select: {
-            answers: {
-              where: { userId, isCorrect: false },
-              select: { id: true },
+            questions: {
+              select: {
+                answers: {
+                  where: { userId, isCorrect: false },
+                  select: { id: true },
+                },
+              },
             },
           },
         },
@@ -34,10 +45,15 @@ export class BooksService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return books.map(({ questions, ...book }) => ({
+    return books.map(({ chapters, ...book }) => ({
       ...book,
-      wrongAnswersCount: questions.reduce(
-        (count, question) => count + question.answers.length,
+      wrongAnswersCount: chapters.reduce(
+        (count, chapter) =>
+          count +
+          chapter.questions.reduce(
+            (chapterCount, question) => chapterCount + question.answers.length,
+            0,
+          ),
         0,
       ),
     }));
@@ -46,20 +62,28 @@ export class BooksService {
   async findFavoriteBooks(userId: number) {
     const books = await this.prisma.book.findMany({
       where: {
-        questions: {
+        chapters: {
           some: {
-            favoriteQuestions: {
-              some: { userId },
+            questions: {
+              some: {
+                favoriteQuestions: {
+                  some: { userId },
+                },
+              },
             },
           },
         },
       },
       include: {
-        questions: {
+        chapters: {
           select: {
-            favoriteQuestions: {
-              where: { userId },
-              select: { questionId: true },
+            questions: {
+              select: {
+                favoriteQuestions: {
+                  where: { userId },
+                  select: { questionId: true },
+                },
+              },
             },
           },
         },
@@ -67,17 +91,26 @@ export class BooksService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return books.map(({ questions, ...book }) => ({
+    return books.map(({ chapters, ...book }) => ({
       ...book,
-      favoriteQuestionsCount: questions.reduce(
-        (count, question) => count + question.favoriteQuestions.length,
+      favoriteQuestionsCount: chapters.reduce(
+        (count, chapter) =>
+          count +
+          chapter.questions.reduce(
+            (chapterCount, question) =>
+              chapterCount + question.favoriteQuestions.length,
+            0,
+          ),
         0,
       ),
     }));
   }
 
   async findOne(id: number) {
-    const book = await this.prisma.book.findUnique({ where: { id } });
+    const book = await this.prisma.book.findUnique({
+      where: { id },
+      include: { chapters: { orderBy: { order: 'asc' } } },
+    });
 
     if (!book) throw new NotFoundException();
     return book;

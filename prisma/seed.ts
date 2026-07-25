@@ -85,20 +85,38 @@ async function seed() {
           update: { description: bookData.description },
         });
 
+        const chapter = await transaction.chapter.upsert({
+          where: {
+            bookId_order: {
+              bookId: book.id,
+              order: 1,
+            },
+          },
+          create: {
+            bookId: book.id,
+            title: 'General',
+            order: 1,
+          },
+          update: {},
+        });
+
         for (const question of questions) {
           const existingQuestion = await transaction.question.findFirst({
-            where: { bookId: book.id, text: question.text },
+            where: {
+              chapter: { bookId: book.id },
+              text: question.text,
+            },
             select: { id: true },
           });
 
           if (existingQuestion) {
             await transaction.question.update({
               where: { id: existingQuestion.id },
-              data: question,
+              data: { ...question, chapterId: chapter.id },
             });
           } else {
             await transaction.question.create({
-              data: { ...question, bookId: book.id },
+              data: { ...question, chapterId: chapter.id },
             });
           }
         }
