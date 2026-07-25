@@ -4,6 +4,7 @@ import { UsersService } from './users.service';
 import type { AuthResponse, JwtUser, UserResponse } from './user';
 import { SignInDTO } from './sign-in-dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { RefreshTokenDTO } from './refresh-token-dto';
 
 interface RequestWithUser extends Request {
   user: JwtUser;
@@ -21,6 +22,11 @@ export class UsersController {
   @Post('/signin')
   signIn(@Body() signInDto: SignInDTO): Promise<AuthResponse> {
     return this.usersService.signIn(signInDto);
+  }
+
+  @Post('/refresh')
+  refresh(@Body() payload: RefreshTokenDTO): Promise<AuthResponse> {
+    return this.usersService.refresh(payload.refreshToken);
   }
 
   @UseGuards(JwtAuthGuard)

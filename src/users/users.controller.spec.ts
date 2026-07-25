@@ -8,12 +8,17 @@ import { UsersService } from './users.service';
 
 describe('UsersController', () => {
   let controller: UsersController;
-  let usersService: { signup: jest.Mock; signIn: jest.Mock };
+  let usersService: {
+    signup: jest.Mock;
+    signIn: jest.Mock;
+    refresh: jest.Mock;
+  };
 
   beforeEach(async () => {
     usersService = {
       signup: jest.fn(),
       signIn: jest.fn(),
+      refresh: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -58,15 +63,36 @@ describe('UsersController', () => {
     usersService.signIn.mockResolvedValue({
       id: 1,
       email: payload.email,
-      accessToken: 'jwt-token',
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
     });
 
     await expect(controller.signIn(payload)).resolves.toEqual({
       id: 1,
       email: payload.email,
-      accessToken: 'jwt-token',
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
     });
     expect(usersService.signIn).toHaveBeenCalledWith(payload);
+  });
+
+  it('should delegate refresh to the users service', async () => {
+    usersService.refresh.mockResolvedValue({
+      id: 1,
+      email: 'user@example.com',
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+    });
+
+    await expect(
+      controller.refresh({ refreshToken: 'old-refresh-token' }),
+    ).resolves.toEqual({
+      id: 1,
+      email: 'user@example.com',
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+    });
+    expect(usersService.refresh).toHaveBeenCalledWith('old-refresh-token');
   });
 
   it('should return the authenticated user', () => {

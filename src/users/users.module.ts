@@ -11,10 +11,7 @@ import { JwtStrategy } from './jwt.strategy';
     PassportModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET ?? 'dev-secret',
-      signOptions: {
-        expiresIn: '1d',
-      },
+      secret: process.env.JWT_ACCESS_SECRET ?? 'dev-access-secret',
     }),
   ],
   controllers: [UsersController],
