@@ -38,6 +38,27 @@ describe('QuestionsController', () => {
     expect(controller).toBeDefined();
   });
 
+  it('passes an optional image when creating a question', async () => {
+    const payload = {
+      chapterId: 3,
+      text: 'Question?',
+      optionA: 'A',
+      optionB: 'B',
+      optionC: 'C',
+      optionD: 'D',
+      correctOption: 'A',
+    };
+    const image = {
+      buffer: Buffer.from('image'),
+      mimetype: 'image/png',
+      size: 5,
+    };
+
+    await controller.add(payload, image);
+
+    expect(mockQuestionsService.create).toHaveBeenCalledWith(payload, image);
+  });
+
   it('favorites a question for the authenticated user', async () => {
     const request = { user: { id: 7, email: 'user@example.com' } };
 

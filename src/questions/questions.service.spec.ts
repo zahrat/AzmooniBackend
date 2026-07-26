@@ -1,8 +1,15 @@
 jest.mock('../prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
+jest.mock('node:fs/promises', () => ({
+  mkdir: jest.fn().mockResolvedValue(undefined),
+  unlink: jest.fn().mockResolvedValue(undefined),
+  writeFile: jest.fn().mockResolvedValue(undefined),
+}));
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
+import { writeFile } from 'node:fs/promises';
 import { QuestionMode } from './question-mode';
 import { QuestionsService } from './questions.service';
 import { PrismaService } from '../prisma.service';
@@ -82,6 +89,67 @@ describe('QuestionsService', () => {
         correctOption: 'A',
       }),
     ).rejects.toThrow('Chapter not found');
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('stores a valid question image and persists its URL', async () => {
+    const payload = {
+      chapterId: 3,
+      text: 'Question?',
+      optionA: 'A',
+      optionB: 'B',
+      optionC: 'C',
+      optionD: 'D',
+      correctOption: 'A',
+    };
+    const image = {
+      buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      mimetype: 'image/png',
+      size: 8,
+    };
+    findChapter.mockResolvedValue({ id: 3 });
+    create.mockImplementation(({ data }) =>
+      Promise.resolve({ id: 1, ...data }),
+    );
+
+    const question = await service.create(payload, image);
+
+    expect(writeFile).toHaveBeenCalledWith(
+      expect.stringMatching(/uploads[/\\]questions[/\\].+\.png$/),
+      image.buffer,
+    );
+    expect(create).toHaveBeenCalledWith({
+      data: {
+        ...payload,
+        imageUrl: expect.stringMatching(
+          /^\/uploads\/questions\/.+\.png$/,
+        ) as string,
+      },
+    });
+    expect(question.imageUrl).toMatch(/^\/uploads\/questions\/.+\.png$/);
+  });
+
+  it('rejects a file whose content is not a supported image', async () => {
+    findChapter.mockResolvedValue({ id: 3 });
+
+    await expect(
+      service.create(
+        {
+          chapterId: 3,
+          text: 'Question?',
+          optionA: 'A',
+          optionB: 'B',
+          optionC: 'C',
+          optionD: 'D',
+          correctOption: 'A',
+        },
+        {
+          buffer: Buffer.from('not an image'),
+          mimetype: 'image/png',
+          size: 12,
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(create).not.toHaveBeenCalled();
   });
 

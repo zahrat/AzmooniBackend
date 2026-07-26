@@ -4,13 +4,17 @@ import {
   DefaultValuePipe,
   Get,
   Param,
+  ParseFilePipe,
   ParseEnumPipe,
   ParseIntPipe,
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../users/jwt-auth.guard';
@@ -28,13 +32,28 @@ interface AuthenticatedRequest extends Request {
   user: JwtUser;
 }
 
+interface UploadedImage {
+  buffer: Buffer;
+  mimetype: string;
+  size: number;
+}
+
 @Controller('questions')
 export class QuestionsController {
   constructor(private readonly questionsService: QuestionsService) {}
 
   @Post()
-  add(@Body() createQuestionDto: CreateQuestionDTO) {
-    return this.questionsService.create(createQuestionDto);
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    }),
+  )
+  add(
+    @Body() createQuestionDto: CreateQuestionDTO,
+    @UploadedFile(new ParseFilePipe({ fileIsRequired: false }))
+    image?: UploadedImage,
+  ) {
+    return this.questionsService.create(createQuestionDto, image);
   }
 
   @UseGuards(QuestionsModeAuthGuard)
