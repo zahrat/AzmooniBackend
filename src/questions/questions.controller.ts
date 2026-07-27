@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../users/jwt-auth.guard';
 import type { JwtUser } from '../users/user';
 import { CreateQuestionDTO } from './create-question-dto';
 import { PaginationQueryDTO } from './pagination-query.dto';
+import { QuestionAccessGuard } from './question-access.guard';
 import { QuestionMode } from './question-mode';
 import { QuestionsModeAuthGuard } from './questions-mode-auth.guard';
 import { QuestionsService } from './questions.service';
@@ -57,7 +58,7 @@ export class QuestionsController {
     return this.questionsService.create(createQuestionDto, image);
   }
 
-  @UseGuards(QuestionsModeAuthGuard)
+  @UseGuards(QuestionsModeAuthGuard, QuestionAccessGuard)
   @Get('/book/:bookId')
   getByBookId(
     @Req() request: RequestWithUser,
@@ -78,7 +79,7 @@ export class QuestionsController {
     );
   }
 
-  @UseGuards(QuestionsModeAuthGuard)
+  @UseGuards(QuestionsModeAuthGuard, QuestionAccessGuard)
   @Get('/chapter/:chapterId')
   getByChapterId(
     @Req() request: RequestWithUser,
@@ -99,6 +100,7 @@ export class QuestionsController {
     );
   }
 
+  @UseGuards(QuestionsModeAuthGuard, QuestionAccessGuard)
   @Get(':id')
   getByQuestionId(@Param('id', ParseIntPipe) id: number) {
     return this.questionsService.findOne(id);

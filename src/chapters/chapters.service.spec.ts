@@ -12,12 +12,16 @@ describe('ChaptersService', () => {
   let createChapter: jest.Mock;
   let findChapters: jest.Mock;
   let findQuestions: jest.Mock;
+  let findPurchaseState: jest.Mock;
 
   beforeEach(async () => {
     findBook = jest.fn();
     createChapter = jest.fn();
     findChapters = jest.fn();
     findQuestions = jest.fn().mockResolvedValue([]);
+    findPurchaseState = jest
+      .fn()
+      .mockResolvedValue({ isPaid: false, purchases: [] });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -25,7 +29,14 @@ describe('ChaptersService', () => {
         {
           provide: PrismaService,
           useValue: {
-            book: { findUnique: findBook },
+            book: {
+              findUnique: jest.fn((...args: unknown[]) => {
+                const query = args[0] as { select?: { isPaid?: boolean } };
+                return query.select?.isPaid
+                  ? findPurchaseState(...args)
+                  : findBook(...args);
+              }),
+            },
             chapter: {
               create: createChapter,
               findMany: findChapters,
@@ -67,6 +78,17 @@ describe('ChaptersService', () => {
 
     await service.findByBook(1, 7);
 
+    expect(findPurchaseState).toHaveBeenCalledWith({
+      where: { id: 1 },
+      select: {
+        isPaid: true,
+        purchases: {
+          where: { userId: 7 },
+          select: { userId: true },
+          take: 1,
+        },
+      },
+    });
     expect(findChapters).toHaveBeenCalledWith({
       where: { bookId: 1 },
       orderBy: { order: 'asc' },
@@ -144,6 +166,7 @@ describe('ChaptersService', () => {
         bookId: 1,
         title: 'First',
         order: 1,
+        canAccess: true,
         progress: {
           answeredQuestions: 3,
           totalQuestions: 4,
@@ -158,6 +181,7 @@ describe('ChaptersService', () => {
         bookId: 1,
         title: 'Second',
         order: 2,
+        canAccess: true,
         progress: {
           answeredQuestions: 0,
           totalQuestions: 0,
@@ -168,5 +192,62 @@ describe('ChaptersService', () => {
         },
       },
     ]);
+  });
+
+  it('only grants access to free chapters of an unpurchased paid book', async () => {
+    findPurchaseState.mockResolvedValue({ isPaid: true, purchases: [] });
+    findChapters.mockResolvedValue([
+      {
+        id: 10,
+        bookId: 1,
+        title: 'Preview',
+        order: 1,
+        isFree: true,
+        _count: { questions: 0 },
+      },
+      {
+        id: 11,
+        bookId: 1,
+        title: 'Premium',
+        order: 2,
+        isFree: false,
+        _count: { questions: 0 },
+      },
+    ]);
+
+    const chapters = await service.findByBook(1, 7);
+
+    expect(chapters.map(({ id, canAccess }) => ({ id, canAccess }))).toEqual([
+      { id: 10, canAccess: true },
+      { id: 11, canAccess: false },
+    ]);
+  });
+
+  it('grants access to every chapter after purchasing a paid book', async () => {
+    findPurchaseState.mockResolvedValue({
+      isPaid: true,
+      purchases: [{ userId: 7 }],
+    });
+    findChapters.mockResolvedValue([
+      {
+        id: 10,
+        bookId: 1,
+        title: 'Premium',
+        order: 1,
+        isFree: false,
+        _count: { questions: 0 },
+      },
+    ]);
+
+    const chapters = await service.findByBook(1, 7);
+
+    expect(chapters[0].canAccess).toBe(true);
+  });
+
+  it('rejects chapter listing for a missing book', async () => {
+    findPurchaseState.mockResolvedValue(null);
+    findChapters.mockResolvedValue([]);
+
+    await expect(service.findByBook(99, 7)).rejects.toThrow('Book not found');
   });
 });

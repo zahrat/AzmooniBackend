@@ -23,15 +23,18 @@ model User {
 
   answers           UserAnswer[]
   favoriteQuestions FavoriteQuestion[]
+  bookPurchases     UserBookPurchase[]
 }
 
 model Book {
-  id          Int       @id @default(autoincrement())
-  title       String    @unique
+  id          Int                @id @default(autoincrement())
+  title       String             @unique
   description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isPaid      Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
   chapters    Chapter[]
+  purchases   UserBookPurchase[]
 }
 
 model Chapter {
@@ -39,6 +42,7 @@ model Chapter {
   bookId            Int
   title             String
   order             Int
+  isFree            Boolean  @default(false)
   nextQuestionOrder Int      @default(1)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -47,6 +51,17 @@ model Chapter {
   questions Question[]
 
   @@unique([bookId, order])
+}
+
+model UserBookPurchase {
+  userId Int
+  bookId Int
+  paidAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@id([userId, bookId])
 }
 
 model Question {

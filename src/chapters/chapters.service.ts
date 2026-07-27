@@ -20,32 +20,50 @@ export class ChaptersService {
   }
 
   async findByBook(bookId: number, userId: number) {
-    const chapters = await this.prisma.chapter.findMany({
-      where: { bookId },
-      orderBy: { order: 'asc' },
-      include: {
-        _count: {
-          select: { questions: true },
+    const [book, chapters, questions] = await Promise.all([
+      this.prisma.book.findUnique({
+        where: { id: bookId },
+        select: {
+          isPaid: true,
+          purchases: {
+            where: { userId },
+            select: { userId: true },
+            take: 1,
+          },
         },
-      },
-    });
+      }),
+      this.prisma.chapter.findMany({
+        where: { bookId },
+        orderBy: { order: 'asc' },
+        include: {
+          _count: {
+            select: { questions: true },
+          },
+        },
+      }),
+      this.prisma.question.findMany({
+        where: {
+          chapter: { bookId },
+        },
+        select: {
+          id: true,
+          chapterId: true,
+          order: true,
+          answers: {
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { createdAt: true },
+          },
+        },
+      }),
+    ]);
 
-    const questions = await this.prisma.question.findMany({
-      where: {
-        chapter: { bookId },
-      },
-      select: {
-        id: true,
-        chapterId: true,
-        order: true,
-        answers: {
-          where: { userId },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: { createdAt: true },
-        },
-      },
-    });
+    if (!book) {
+      throw new NotFoundException('Book not found');
+    }
+
+    const hasPurchasedBook = book.purchases.length > 0;
 
     const progressByChapter = questions.reduce(
       (progress, question) => {
@@ -102,6 +120,7 @@ export class ChaptersService {
 
       return {
         ...chapter,
+        canAccess: !book.isPaid || chapter.isFree || hasPurchasedBook,
         progress: {
           answeredQuestions: answered,
           totalQuestions: total,

@@ -1,0 +1,23 @@
+ALTER TABLE "Book"
+ADD COLUMN "isPaid" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "Chapter"
+ADD COLUMN "isFree" BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE "UserBookPurchase" (
+    "userId" INTEGER NOT NULL,
+    "bookId" INTEGER NOT NULL,
+    "paidAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "UserBookPurchase_pkey" PRIMARY KEY ("userId", "bookId")
+);
+
+ALTER TABLE "UserBookPurchase"
+ADD CONSTRAINT "UserBookPurchase_userId_fkey"
+FOREIGN KEY ("userId") REFERENCES "User"("id")
+ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "UserBookPurchase"
+ADD CONSTRAINT "UserBookPurchase_bookId_fkey"
+FOREIGN KEY ("bookId") REFERENCES "Book"("id")
+ON DELETE CASCADE ON UPDATE CASCADE;

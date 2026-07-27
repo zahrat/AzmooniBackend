@@ -2,6 +2,8 @@ jest.mock('../prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from '../prisma.service';
+import { QuestionAccessGuard } from './question-access.guard';
 import { QuestionsController } from './questions.controller';
 import { QuestionsService } from './questions.service';
 
@@ -24,6 +26,14 @@ describe('QuestionsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [QuestionsController],
       providers: [
+        {
+          provide: QuestionAccessGuard,
+          useValue: { canActivate: jest.fn().mockReturnValue(true) },
+        },
+        {
+          provide: PrismaService,
+          useValue: {},
+        },
         {
           provide: QuestionsService,
           useValue: mockQuestionsService,
