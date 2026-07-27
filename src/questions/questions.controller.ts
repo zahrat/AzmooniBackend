@@ -20,6 +20,7 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../users/jwt-auth.guard';
 import type { JwtUser } from '../users/user';
 import { CreateQuestionDTO } from './create-question-dto';
+import { PaginationQueryDTO } from './pagination-query.dto';
 import { QuestionMode } from './question-mode';
 import { QuestionsModeAuthGuard } from './questions-mode-auth.guard';
 import { QuestionsService } from './questions.service';
@@ -67,8 +68,14 @@ export class QuestionsController {
       new ParseEnumPipe(QuestionMode),
     )
     mode: QuestionMode,
+    @Query() pagination: PaginationQueryDTO,
   ) {
-    return this.questionsService.findAll(bookId, mode, request.user?.id);
+    return this.questionsService.findAll(
+      bookId,
+      mode,
+      request.user?.id,
+      pagination,
+    );
   }
 
   @UseGuards(QuestionsModeAuthGuard)
@@ -82,11 +89,13 @@ export class QuestionsController {
       new ParseEnumPipe(QuestionMode),
     )
     mode: QuestionMode,
+    @Query() pagination: PaginationQueryDTO,
   ) {
     return this.questionsService.findByChapter(
       chapterId,
       mode,
       request.user?.id,
+      pagination,
     );
   }
 
@@ -118,7 +127,12 @@ export class QuestionsController {
   getFavorite(
     @Req() request: AuthenticatedRequest,
     @Param('bookId', ParseIntPipe) bookId: number,
+    @Query() pagination: PaginationQueryDTO,
   ) {
-    return this.questionsService.findFavorites(request.user.id, bookId);
+    return this.questionsService.findFavorites(
+      request.user.id,
+      bookId,
+      pagination,
+    );
   }
 }

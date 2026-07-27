@@ -77,21 +77,52 @@ describe('QuestionsController', () => {
 
   it('returns favorite questions for a book and authenticated user', async () => {
     const request = { user: { id: 7, email: 'user@example.com' } };
+    const pagination = { page: 2, limit: 10 };
 
-    await controller.getFavorite(request as never, 3);
+    await controller.getFavorite(request as never, 3, pagination);
 
-    expect(mockQuestionsService.findFavorites).toHaveBeenCalledWith(7, 3);
+    expect(mockQuestionsService.findFavorites).toHaveBeenCalledWith(
+      7,
+      3,
+      pagination,
+    );
   });
 
   it('returns questions for a chapter', async () => {
     const request = { user: { id: 7, email: 'user@example.com' } };
+    const pagination = { page: 2, limit: 10 };
 
-    await controller.getByChapterId(request as never, 3, 'all' as never);
+    await controller.getByChapterId(
+      request as never,
+      3,
+      'all' as never,
+      pagination,
+    );
 
     expect(mockQuestionsService.findByChapter).toHaveBeenCalledWith(
       3,
       'all',
       7,
+      pagination,
+    );
+  });
+
+  it('returns questions for a book with pagination', async () => {
+    const request = { user: { id: 7, email: 'user@example.com' } };
+    const pagination = { page: 3, limit: 25 };
+
+    await controller.getByBookId(
+      request as never,
+      12,
+      'wrong' as never,
+      pagination,
+    );
+
+    expect(mockQuestionsService.findAll).toHaveBeenCalledWith(
+      12,
+      'wrong',
+      7,
+      pagination,
     );
   });
 });

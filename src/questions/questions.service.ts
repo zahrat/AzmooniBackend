@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma.service';
 import { CreateQuestionDTO } from './create-question-dto';
+import { PaginationQueryDTO } from './pagination-query.dto';
 import { QuestionMode } from './question-mode';
 
 interface UploadedImage {
@@ -49,6 +50,8 @@ const IMAGE_TYPES = {
       buffer.subarray(8, 12).toString('ascii') === 'WEBP',
   },
 } as const;
+
+const DEFAULT_PAGINATION: PaginationQueryDTO = { page: 1, limit: 20 };
 
 @Injectable()
 export class QuestionsService {
@@ -104,6 +107,7 @@ export class QuestionsService {
     bookId: number,
     mode: QuestionMode = QuestionMode.All,
     userId?: number,
+    pagination: PaginationQueryDTO = DEFAULT_PAGINATION,
   ) {
     if (mode === QuestionMode.Wrong && userId === undefined) {
       throw new UnauthorizedException(
@@ -111,34 +115,41 @@ export class QuestionsService {
       );
     }
 
-    const questions = await this.prisma.question.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: {
-        chapter: { bookId },
-        ...(mode === QuestionMode.Wrong
-          ? {
-              answers: {
-                some: {
-                  userId,
-                  isCorrect: false,
-                },
-              },
-            }
-          : {}),
-      },
-      ...(userId !== undefined
+    const where = {
+      chapter: { bookId },
+      ...(mode === QuestionMode.Wrong
         ? {
-            include: {
-              favoriteQuestions: {
-                where: { userId },
-                select: { userId: true },
+            answers: {
+              some: {
+                userId,
+                isCorrect: false,
               },
             },
           }
         : {}),
-    });
+    };
 
-    return questions.map((question) => {
+    const [total, questions] = await Promise.all([
+      this.prisma.question.count({ where }),
+      this.prisma.question.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        where,
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
+        ...(userId !== undefined
+          ? {
+              include: {
+                favoriteQuestions: {
+                  where: { userId },
+                  select: { userId: true },
+                },
+              },
+            }
+          : {}),
+      }),
+    ]);
+
+    const data = questions.map((question) => {
       const { favoriteQuestions = [], ...questionData } =
         question as typeof question & {
           favoriteQuestions?: { userId: number }[];
@@ -149,12 +160,15 @@ export class QuestionsService {
         isFavorite: favoriteQuestions.length > 0,
       };
     });
+
+    return this.paginatedResponse(data, total, pagination);
   }
 
   async findByChapter(
     chapterId: number,
     mode: QuestionMode = QuestionMode.All,
     userId?: number,
+    pagination: PaginationQueryDTO = DEFAULT_PAGINATION,
   ) {
     if (mode === QuestionMode.Wrong && userId === undefined) {
       throw new UnauthorizedException(
@@ -162,34 +176,41 @@ export class QuestionsService {
       );
     }
 
-    const questions = await this.prisma.question.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: {
-        chapterId,
-        ...(mode === QuestionMode.Wrong
-          ? {
-              answers: {
-                some: {
-                  userId,
-                  isCorrect: false,
-                },
-              },
-            }
-          : {}),
-      },
-      ...(userId !== undefined
+    const where = {
+      chapterId,
+      ...(mode === QuestionMode.Wrong
         ? {
-            include: {
-              favoriteQuestions: {
-                where: { userId },
-                select: { userId: true },
+            answers: {
+              some: {
+                userId,
+                isCorrect: false,
               },
             },
           }
         : {}),
-    });
+    };
 
-    return questions.map((question) => {
+    const [total, questions] = await Promise.all([
+      this.prisma.question.count({ where }),
+      this.prisma.question.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        where,
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
+        ...(userId !== undefined
+          ? {
+              include: {
+                favoriteQuestions: {
+                  where: { userId },
+                  select: { userId: true },
+                },
+              },
+            }
+          : {}),
+      }),
+    ]);
+
+    const data = questions.map((question) => {
       const { favoriteQuestions = [], ...questionData } =
         question as typeof question & {
           favoriteQuestions?: { userId: number }[];
@@ -200,6 +221,8 @@ export class QuestionsService {
         isFavorite: favoriteQuestions.length > 0,
       };
     });
+
+    return this.paginatedResponse(data, total, pagination);
   }
 
   async findOne(id: number) {
@@ -209,21 +232,34 @@ export class QuestionsService {
     return question;
   }
 
-  async findFavorites(userId: number, bookId?: number) {
-    const favorites = await this.prisma.favoriteQuestion.findMany({
-      where: {
-        userId,
-        ...(bookId !== undefined ? { question: { chapter: { bookId } } } : {}),
-      },
-      select: {
-        question: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+  async findFavorites(
+    userId: number,
+    bookId?: number,
+    pagination: PaginationQueryDTO = DEFAULT_PAGINATION,
+  ) {
+    const where = {
+      userId,
+      ...(bookId !== undefined ? { question: { chapter: { bookId } } } : {}),
+    };
 
-    return favorites.map(({ question }) => question);
+    const [total, favorites] = await Promise.all([
+      this.prisma.favoriteQuestion.count({ where }),
+      this.prisma.favoriteQuestion.findMany({
+        where,
+        select: {
+          question: true,
+        },
+        orderBy: [{ createdAt: 'desc' }, { questionId: 'desc' }],
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
+      }),
+    ]);
+
+    return this.paginatedResponse(
+      favorites.map(({ question }) => question),
+      total,
+      pagination,
+    );
   }
 
   async favorite(questionId: number, userId: number) {
@@ -262,5 +298,21 @@ export class QuestionsService {
     return await this.prisma.favoriteQuestion.delete({
       where: { userId_questionId: { userId, questionId } },
     });
+  }
+
+  private paginatedResponse<T>(
+    data: T[],
+    total: number,
+    { page, limit }: PaginationQueryDTO,
+  ) {
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }
