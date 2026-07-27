@@ -105,4 +105,45 @@ describe('AnswersService', () => {
       select: { id: true },
     });
   });
+
+  it('returns only unique questions whose latest answer is wrong', async () => {
+    const latestWrongAnswer = {
+      id: 15,
+      userId: 7,
+      questionId: 13,
+      selectedOption: 'A',
+      isCorrect: false,
+      createdAt: new Date('2026-07-27T11:00:00.000Z'),
+      question: { id: 13 },
+    };
+    prisma.userAnswer.findMany.mockResolvedValue([
+      {
+        id: 16,
+        userId: 7,
+        questionId: 12,
+        selectedOption: 'B',
+        isCorrect: true,
+        createdAt: new Date('2026-07-27T12:00:00.000Z'),
+        question: { id: 12 },
+      },
+      latestWrongAnswer,
+    ]);
+
+    await expect(service.findWrongAnswersByBookId(7, 4)).resolves.toEqual([
+      latestWrongAnswer,
+    ]);
+    expect(prisma.userAnswer.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 7,
+        question: {
+          chapter: { bookId: 4 },
+        },
+      },
+      include: {
+        question: true,
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      distinct: ['questionId'],
+    });
+  });
 });

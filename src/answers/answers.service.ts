@@ -77,10 +77,9 @@ export class AnswersService {
   }
 
   async findWrongAnswersByBookId(userId: number, bookId: number) {
-    return await this.prisma.userAnswer.findMany({
+    const latestAnswers = await this.prisma.userAnswer.findMany({
       where: {
         userId,
-        isCorrect: false,
         question: {
           chapter: { bookId },
         },
@@ -88,9 +87,10 @@ export class AnswersService {
       include: {
         question: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      distinct: ['questionId'],
     });
+
+    return latestAnswers.filter((answer) => !answer.isCorrect);
   }
 }

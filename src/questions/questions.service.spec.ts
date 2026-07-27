@@ -17,6 +17,7 @@ import { PrismaService } from '../prisma.service';
 describe('QuestionsService', () => {
   let service: QuestionsService;
   let findMany: jest.Mock;
+  let findManyAnswers: jest.Mock;
   let count: jest.Mock;
   let findFavoriteQuestions: jest.Mock;
   let countFavoriteQuestions: jest.Mock;
@@ -26,6 +27,7 @@ describe('QuestionsService', () => {
 
   beforeEach(async () => {
     findMany = jest.fn().mockResolvedValue([]);
+    findManyAnswers = jest.fn().mockResolvedValue([]);
     count = jest.fn().mockResolvedValue(0);
     findFavoriteQuestions = jest.fn().mockResolvedValue([]);
     countFavoriteQuestions = jest.fn().mockResolvedValue(0);
@@ -33,6 +35,14 @@ describe('QuestionsService', () => {
     findChapter = jest.fn();
     updateChapter = jest.fn().mockResolvedValue({ nextQuestionOrder: 2 });
 
+    const transaction = {
+      chapter: {
+        update: updateChapter,
+      },
+      question: {
+        create,
+      },
+    };
     const prisma = {
       chapter: {
         findUnique: findChapter,
@@ -44,13 +54,16 @@ describe('QuestionsService', () => {
         findMany,
         findUnique: jest.fn(),
       },
+      userAnswer: {
+        findMany: findManyAnswers,
+      },
       favoriteQuestion: {
         count: countFavoriteQuestions,
         findMany: findFavoriteQuestions,
       },
       $transaction: jest.fn(
         (callback: (transaction: unknown) => Promise<unknown>) =>
-          callback(prisma),
+          callback(transaction),
       ),
     };
 
@@ -238,18 +251,30 @@ describe('QuestionsService', () => {
   });
 
   it('filters wrong chapter questions by the authenticated user', async () => {
+    findManyAnswers.mockResolvedValueOnce([
+      { questionId: 10, isCorrect: false },
+      { questionId: 11, isCorrect: true },
+    ]);
+
     await service.findByChapter(3, QuestionMode.Wrong, 7);
 
+    expect(findManyAnswers).toHaveBeenCalledWith({
+      where: {
+        userId: 7,
+        question: { chapterId: 3 },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      distinct: ['questionId'],
+      select: {
+        questionId: true,
+        isCorrect: true,
+      },
+    });
     expect(findMany).toHaveBeenCalledWith({
       orderBy: [{ order: 'asc' }, { id: 'asc' }],
       where: {
         chapterId: 3,
-        answers: {
-          some: {
-            userId: 7,
-            isCorrect: false,
-          },
-        },
+        id: { in: [10] },
       },
       include: {
         favoriteQuestions: {
@@ -269,18 +294,30 @@ describe('QuestionsService', () => {
   });
 
   it('filters wrong questions by the authenticated user', async () => {
+    findManyAnswers.mockResolvedValueOnce([
+      { questionId: 20, isCorrect: true },
+      { questionId: 21, isCorrect: false },
+    ]);
+
     await service.findAll(12, QuestionMode.Wrong, 7);
 
+    expect(findManyAnswers).toHaveBeenCalledWith({
+      where: {
+        userId: 7,
+        question: { chapter: { bookId: 12 } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      distinct: ['questionId'],
+      select: {
+        questionId: true,
+        isCorrect: true,
+      },
+    });
     expect(findMany).toHaveBeenCalledWith({
       orderBy: [{ chapter: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
       where: {
         chapter: { bookId: 12 },
-        answers: {
-          some: {
-            userId: 7,
-            isCorrect: false,
-          },
-        },
+        id: { in: [21] },
       },
       include: {
         favoriteQuestions: {

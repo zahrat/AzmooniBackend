@@ -126,18 +126,16 @@ export class QuestionsService {
       );
     }
 
+    const wrongQuestionIds =
+      mode === QuestionMode.Wrong
+        ? await this.findLatestWrongQuestionIds(userId!, {
+            chapter: { bookId },
+          })
+        : undefined;
+
     const where = {
       chapter: { bookId },
-      ...(mode === QuestionMode.Wrong
-        ? {
-            answers: {
-              some: {
-                userId,
-                isCorrect: false,
-              },
-            },
-          }
-        : {}),
+      ...(wrongQuestionIds ? { id: { in: wrongQuestionIds } } : {}),
     };
 
     const [total, questions] = await Promise.all([
@@ -191,18 +189,14 @@ export class QuestionsService {
       );
     }
 
+    const wrongQuestionIds =
+      mode === QuestionMode.Wrong
+        ? await this.findLatestWrongQuestionIds(userId!, { chapterId })
+        : undefined;
+
     const where = {
       chapterId,
-      ...(mode === QuestionMode.Wrong
-        ? {
-            answers: {
-              some: {
-                userId,
-                isCorrect: false,
-              },
-            },
-          }
-        : {}),
+      ...(wrongQuestionIds ? { id: { in: wrongQuestionIds } } : {}),
     };
 
     const [total, questions] = await Promise.all([
@@ -245,6 +239,28 @@ export class QuestionsService {
 
     if (!question) throw new NotFoundException('Question not found');
     return question;
+  }
+
+  private async findLatestWrongQuestionIds(
+    userId: number,
+    questionWhere: { chapterId: number } | { chapter: { bookId: number } },
+  ) {
+    const latestAnswers = await this.prisma.userAnswer.findMany({
+      where: {
+        userId,
+        question: questionWhere,
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      distinct: ['questionId'],
+      select: {
+        questionId: true,
+        isCorrect: true,
+      },
+    });
+
+    return latestAnswers
+      .filter((answer) => !answer.isCorrect)
+      .map((answer) => answer.questionId);
   }
 
   async findFavorites(
