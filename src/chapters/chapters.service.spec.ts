@@ -11,11 +11,13 @@ describe('ChaptersService', () => {
   let findBook: jest.Mock;
   let createChapter: jest.Mock;
   let findChapters: jest.Mock;
+  let findQuestions: jest.Mock;
 
   beforeEach(async () => {
     findBook = jest.fn();
     createChapter = jest.fn();
     findChapters = jest.fn();
+    findQuestions = jest.fn().mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -27,6 +29,9 @@ describe('ChaptersService', () => {
             chapter: {
               create: createChapter,
               findMany: findChapters,
+            },
+            question: {
+              findMany: findQuestions,
             },
           },
         },
@@ -60,11 +65,97 @@ describe('ChaptersService', () => {
   it('returns book chapters in their defined order', async () => {
     findChapters.mockResolvedValue([]);
 
-    await service.findByBook(1);
+    await service.findByBook(1, 7);
 
     expect(findChapters).toHaveBeenCalledWith({
       where: { bookId: 1 },
       orderBy: { order: 'asc' },
+      include: {
+        _count: {
+          select: { questions: true },
+        },
+      },
     });
+    expect(findQuestions).toHaveBeenCalledWith({
+      where: {
+        chapter: { bookId: 1 },
+        answers: { some: { userId: 7 } },
+      },
+      select: {
+        id: true,
+        chapterId: true,
+        answers: {
+          where: { userId: 7 },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { createdAt: true },
+        },
+      },
+    });
+  });
+
+  it('returns progress based on distinct answered questions in each chapter', async () => {
+    findChapters.mockResolvedValue([
+      {
+        id: 10,
+        bookId: 1,
+        title: 'First',
+        order: 1,
+        _count: { questions: 4 },
+      },
+      {
+        id: 11,
+        bookId: 1,
+        title: 'Second',
+        order: 2,
+        _count: { questions: 0 },
+      },
+    ]);
+    findQuestions.mockResolvedValue([
+      {
+        id: 101,
+        chapterId: 10,
+        answers: [{ createdAt: new Date('2026-07-27T08:00:00.000Z') }],
+      },
+      {
+        id: 102,
+        chapterId: 10,
+        answers: [{ createdAt: new Date('2026-07-27T10:00:00.000Z') }],
+      },
+      {
+        id: 103,
+        chapterId: 10,
+        answers: [{ createdAt: new Date('2026-07-27T09:00:00.000Z') }],
+      },
+    ]);
+
+    await expect(service.findByBook(1, 7)).resolves.toEqual([
+      {
+        id: 10,
+        bookId: 1,
+        title: 'First',
+        order: 1,
+        progress: {
+          answeredQuestions: 3,
+          totalQuestions: 4,
+          lastAnsweredQuestionId: 102,
+          lastAnsweredAt: new Date('2026-07-27T10:00:00.000Z'),
+          percentage: 75,
+        },
+      },
+      {
+        id: 11,
+        bookId: 1,
+        title: 'Second',
+        order: 2,
+        progress: {
+          answeredQuestions: 0,
+          totalQuestions: 0,
+          lastAnsweredQuestionId: null,
+          lastAnsweredAt: null,
+          percentage: 0,
+        },
+      },
+    ]);
   });
 });
