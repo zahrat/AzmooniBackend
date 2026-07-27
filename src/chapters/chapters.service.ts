@@ -30,14 +30,14 @@ export class ChaptersService {
       },
     });
 
-    const answeredQuestions = await this.prisma.question.findMany({
+    const questions = await this.prisma.question.findMany({
       where: {
         chapter: { bookId },
-        answers: { some: { userId } },
       },
       select: {
         id: true,
         chapterId: true,
+        order: true,
         answers: {
           where: { userId },
           orderBy: { createdAt: 'desc' },
@@ -47,22 +47,25 @@ export class ChaptersService {
       },
     });
 
-    const progressByChapter = answeredQuestions.reduce(
+    const progressByChapter = questions.reduce(
       (progress, question) => {
+        const answeredAt = question.answers[0]?.createdAt ?? null;
+        if (!answeredAt) {
+          return progress;
+        }
+
         const current = progress.get(question.chapterId) ?? {
           answeredQuestions: 0,
           lastAnsweredQuestionId: null,
           lastAnsweredAt: null,
+          lastAnsweredQuestionOrder: null,
         };
-        const answeredAt = question.answers[0]?.createdAt ?? null;
 
         current.answeredQuestions += 1;
-        if (
-          answeredAt &&
-          (!current.lastAnsweredAt || answeredAt > current.lastAnsweredAt)
-        ) {
+        if (!current.lastAnsweredAt || answeredAt > current.lastAnsweredAt) {
           current.lastAnsweredQuestionId = question.id;
           current.lastAnsweredAt = answeredAt;
+          current.lastAnsweredQuestionOrder = question.order;
         }
 
         progress.set(question.chapterId, current);
@@ -74,14 +77,28 @@ export class ChaptersService {
           answeredQuestions: number;
           lastAnsweredQuestionId: number | null;
           lastAnsweredAt: Date | null;
+          lastAnsweredQuestionOrder: number | null;
         }
       >(),
     );
 
-    return chapters.map(({ _count, ...chapter }) => {
+    return chapters.map(({ _count, nextQuestionOrder: _, ...chapter }) => {
       const chapterProgress = progressByChapter.get(chapter.id);
       const answered = chapterProgress?.answeredQuestions ?? 0;
       const total = _count.questions;
+      const lastOrder = chapterProgress?.lastAnsweredQuestionOrder ?? null;
+      const nextQuestion =
+        lastOrder === null
+          ? questions
+              .filter((question) => question.chapterId === chapter.id)
+              .sort((a, b) => a.order - b.order)[0]
+          : questions
+              .filter(
+                (question) =>
+                  question.chapterId === chapter.id &&
+                  question.order > lastOrder,
+              )
+              .sort((a, b) => a.order - b.order)[0];
 
       return {
         ...chapter,
@@ -91,6 +108,7 @@ export class ChaptersService {
           lastAnsweredQuestionId:
             chapterProgress?.lastAnsweredQuestionId ?? null,
           lastAnsweredAt: chapterProgress?.lastAnsweredAt ?? null,
+          nextQuestionId: nextQuestion?.id ?? null,
           percentage: total === 0 ? 0 : Math.round((answered / total) * 100),
         },
       };

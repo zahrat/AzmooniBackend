@@ -115,8 +115,20 @@ async function seed() {
               data: { ...question, chapterId: chapter.id },
             });
           } else {
+            const chapterWithAllocatedOrder = await transaction.chapter.update({
+              where: { id: chapter.id },
+              data: {
+                nextQuestionOrder: { increment: 1 },
+              },
+              select: { nextQuestionOrder: true },
+            });
+
             await transaction.question.create({
-              data: { ...question, chapterId: chapter.id },
+              data: {
+                ...question,
+                chapterId: chapter.id,
+                order: chapterWithAllocatedOrder.nextQuestionOrder - 1,
+              },
             });
           }
         }

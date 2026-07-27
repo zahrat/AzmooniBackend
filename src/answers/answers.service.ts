@@ -12,6 +12,7 @@ export class AnswersService {
       select: {
         correctOption: true,
         chapterId: true,
+        order: true,
       },
     });
 
@@ -27,19 +28,29 @@ export class AnswersService {
       },
     });
 
-    const [totalQuestions, answeredQuestions] = await Promise.all([
-      this.prisma.question.count({
-        where: { chapterId: question.chapterId },
-      }),
-      this.prisma.userAnswer.findMany({
-        where: {
-          userId,
-          question: { chapterId: question.chapterId },
-        },
-        distinct: ['questionId'],
-        select: { questionId: true },
-      }),
-    ]);
+    const [totalQuestions, answeredQuestions, nextQuestion] = await Promise.all(
+      [
+        this.prisma.question.count({
+          where: { chapterId: question.chapterId },
+        }),
+        this.prisma.userAnswer.findMany({
+          where: {
+            userId,
+            question: { chapterId: question.chapterId },
+          },
+          distinct: ['questionId'],
+          select: { questionId: true },
+        }),
+        this.prisma.question.findFirst({
+          where: {
+            chapterId: question.chapterId,
+            order: { gt: question.order },
+          },
+          orderBy: [{ order: 'asc' }, { id: 'asc' }],
+          select: { id: true },
+        }),
+      ],
+    );
 
     return {
       ...answer,
@@ -49,6 +60,7 @@ export class AnswersService {
         totalQuestions,
         lastAnsweredQuestionId: answer.questionId,
         lastAnsweredAt: answer.createdAt,
+        nextQuestionId: nextQuestion?.id ?? null,
         percentage:
           totalQuestions === 0
             ? 0

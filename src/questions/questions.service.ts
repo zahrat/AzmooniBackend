@@ -89,11 +89,22 @@ export class QuestionsService {
     }
 
     try {
-      return await this.prisma.question.create({
-        data: {
-          ...payload,
-          ...(imageUrl ? { imageUrl } : {}),
-        },
+      return await this.prisma.$transaction(async (transaction) => {
+        const chapterWithAllocatedOrder = await transaction.chapter.update({
+          where: { id: payload.chapterId },
+          data: {
+            nextQuestionOrder: { increment: 1 },
+          },
+          select: { nextQuestionOrder: true },
+        });
+
+        return transaction.question.create({
+          data: {
+            ...payload,
+            order: chapterWithAllocatedOrder.nextQuestionOrder - 1,
+            ...(imageUrl ? { imageUrl } : {}),
+          },
+        });
       });
     } catch (error) {
       if (storedImagePath) {
@@ -132,7 +143,11 @@ export class QuestionsService {
     const [total, questions] = await Promise.all([
       this.prisma.question.count({ where }),
       this.prisma.question.findMany({
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy: [
+          { chapter: { order: 'asc' } },
+          { order: 'asc' },
+          { id: 'asc' },
+        ],
         where,
         skip: (pagination.page - 1) * pagination.limit,
         take: pagination.limit,
@@ -193,7 +208,7 @@ export class QuestionsService {
     const [total, questions] = await Promise.all([
       this.prisma.question.count({ where }),
       this.prisma.question.findMany({
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy: [{ order: 'asc' }, { id: 'asc' }],
         where,
         skip: (pagination.page - 1) * pagination.limit,
         take: pagination.limit,

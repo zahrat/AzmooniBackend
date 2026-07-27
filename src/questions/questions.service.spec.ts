@@ -22,6 +22,7 @@ describe('QuestionsService', () => {
   let countFavoriteQuestions: jest.Mock;
   let create: jest.Mock;
   let findChapter: jest.Mock;
+  let updateChapter: jest.Mock;
 
   beforeEach(async () => {
     findMany = jest.fn().mockResolvedValue([]);
@@ -30,27 +31,35 @@ describe('QuestionsService', () => {
     countFavoriteQuestions = jest.fn().mockResolvedValue(0);
     create = jest.fn();
     findChapter = jest.fn();
+    updateChapter = jest.fn().mockResolvedValue({ nextQuestionOrder: 2 });
+
+    const prisma = {
+      chapter: {
+        findUnique: findChapter,
+        update: updateChapter,
+      },
+      question: {
+        create,
+        count,
+        findMany,
+        findUnique: jest.fn(),
+      },
+      favoriteQuestion: {
+        count: countFavoriteQuestions,
+        findMany: findFavoriteQuestions,
+      },
+      $transaction: jest.fn(
+        (callback: (transaction: unknown) => Promise<unknown>) =>
+          callback(prisma),
+      ),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         QuestionsService,
         {
           provide: PrismaService,
-          useValue: {
-            chapter: {
-              findUnique: findChapter,
-            },
-            question: {
-              create,
-              count,
-              findMany,
-              findUnique: jest.fn(),
-            },
-            favoriteQuestion: {
-              count: countFavoriteQuestions,
-              findMany: findFavoriteQuestions,
-            },
-          },
+          useValue: prisma,
         },
       ],
     }).compile();
@@ -83,7 +92,19 @@ describe('QuestionsService', () => {
       where: { id: 3 },
       select: { id: true },
     });
-    expect(create).toHaveBeenCalledWith({ data: payload });
+    expect(updateChapter).toHaveBeenCalledWith({
+      where: { id: 3 },
+      data: {
+        nextQuestionOrder: { increment: 1 },
+      },
+      select: { nextQuestionOrder: true },
+    });
+    expect(create).toHaveBeenCalledWith({
+      data: {
+        ...payload,
+        order: 1,
+      },
+    });
   });
 
   it('rejects a question for a missing chapter', async () => {
@@ -132,6 +153,7 @@ describe('QuestionsService', () => {
     expect(create).toHaveBeenCalledWith({
       data: {
         ...payload,
+        order: 1,
         imageUrl: expect.stringMatching(
           /^\/uploads\/questions\/.+\.png$/,
         ) as string,
@@ -168,7 +190,7 @@ describe('QuestionsService', () => {
     await service.findAll(12, QuestionMode.All);
 
     expect(findMany).toHaveBeenCalledWith({
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ chapter: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
       where: { chapter: { bookId: 12 } },
       skip: 0,
       take: 20,
@@ -182,7 +204,7 @@ describe('QuestionsService', () => {
     await service.findByChapter(3, QuestionMode.All);
 
     expect(findMany).toHaveBeenCalledWith({
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ order: 'asc' }, { id: 'asc' }],
       where: { chapterId: 3 },
       skip: 0,
       take: 20,
@@ -208,7 +230,7 @@ describe('QuestionsService', () => {
       },
     });
     expect(findMany).toHaveBeenCalledWith({
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ order: 'asc' }, { id: 'asc' }],
       where: { chapterId: 3 },
       skip: 20,
       take: 10,
@@ -219,7 +241,7 @@ describe('QuestionsService', () => {
     await service.findByChapter(3, QuestionMode.Wrong, 7);
 
     expect(findMany).toHaveBeenCalledWith({
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ order: 'asc' }, { id: 'asc' }],
       where: {
         chapterId: 3,
         answers: {
@@ -250,7 +272,7 @@ describe('QuestionsService', () => {
     await service.findAll(12, QuestionMode.Wrong, 7);
 
     expect(findMany).toHaveBeenCalledWith({
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ chapter: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
       where: {
         chapter: { bookId: 12 },
         answers: {

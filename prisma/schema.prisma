@@ -35,12 +35,13 @@ model Book {
 }
 
 model Chapter {
-  id        Int      @id @default(autoincrement())
-  bookId    Int
-  title     String
-  order     Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  bookId            Int
+  title             String
+  order             Int
+  nextQuestionOrder Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   book      Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
   questions Question[]
@@ -51,6 +52,7 @@ model Chapter {
 model Question {
   id            Int      @id @default(autoincrement())
   chapterId     Int
+  order         Int
   text          String
   imageUrl      String?
   optionA       String
@@ -64,6 +66,8 @@ model Question {
   chapter           Chapter            @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   answers           UserAnswer[]
   favoriteQuestions FavoriteQuestion[]
+
+  @@unique([chapterId, order])
 }
 
 model UserAnswer {

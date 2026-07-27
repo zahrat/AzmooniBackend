@@ -9,7 +9,11 @@ import { PrismaService } from '../prisma.service';
 describe('AnswersService', () => {
   let service: AnswersService;
   let prisma: {
-    question: { findUnique: jest.Mock; count: jest.Mock };
+    question: {
+      findUnique: jest.Mock;
+      findFirst: jest.Mock;
+      count: jest.Mock;
+    };
     userAnswer: { create: jest.Mock; findMany: jest.Mock };
   };
 
@@ -17,6 +21,7 @@ describe('AnswersService', () => {
     prisma = {
       question: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         count: jest.fn(),
       },
       userAnswer: {
@@ -46,6 +51,7 @@ describe('AnswersService', () => {
     prisma.question.findUnique.mockResolvedValue({
       correctOption: 'B',
       chapterId: 3,
+      order: 2,
     });
     prisma.userAnswer.create.mockResolvedValue({
       id: 9,
@@ -56,6 +62,7 @@ describe('AnswersService', () => {
       createdAt: new Date('2026-07-27T10:00:00.000Z'),
     });
     prisma.question.count.mockResolvedValue(4);
+    prisma.question.findFirst.mockResolvedValue({ id: 13 });
     prisma.userAnswer.findMany.mockResolvedValue([
       { questionId: 10 },
       { questionId: 12 },
@@ -76,6 +83,7 @@ describe('AnswersService', () => {
         totalQuestions: 4,
         lastAnsweredQuestionId: 12,
         lastAnsweredAt: new Date('2026-07-27T10:00:00.000Z'),
+        nextQuestionId: 13,
         percentage: 50,
       },
     });
@@ -87,6 +95,14 @@ describe('AnswersService', () => {
       },
       distinct: ['questionId'],
       select: { questionId: true },
+    });
+    expect(prisma.question.findFirst).toHaveBeenCalledWith({
+      where: {
+        chapterId: 3,
+        order: { gt: 2 },
+      },
+      orderBy: [{ order: 'asc' }, { id: 'asc' }],
+      select: { id: true },
     });
   });
 });

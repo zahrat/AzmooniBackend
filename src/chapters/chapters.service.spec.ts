@@ -79,11 +79,11 @@ describe('ChaptersService', () => {
     expect(findQuestions).toHaveBeenCalledWith({
       where: {
         chapter: { bookId: 1 },
-        answers: { some: { userId: 7 } },
       },
       select: {
         id: true,
         chapterId: true,
+        order: true,
         answers: {
           where: { userId: 7 },
           orderBy: { createdAt: 'desc' },
@@ -115,17 +115,26 @@ describe('ChaptersService', () => {
       {
         id: 101,
         chapterId: 10,
+        order: 1,
         answers: [{ createdAt: new Date('2026-07-27T08:00:00.000Z') }],
       },
       {
         id: 102,
         chapterId: 10,
+        order: 2,
         answers: [{ createdAt: new Date('2026-07-27T10:00:00.000Z') }],
       },
       {
         id: 103,
         chapterId: 10,
+        order: 3,
         answers: [{ createdAt: new Date('2026-07-27T09:00:00.000Z') }],
+      },
+      {
+        id: 104,
+        chapterId: 10,
+        order: 4,
+        answers: [],
       },
     ]);
 
@@ -140,6 +149,7 @@ describe('ChaptersService', () => {
           totalQuestions: 4,
           lastAnsweredQuestionId: 102,
           lastAnsweredAt: new Date('2026-07-27T10:00:00.000Z'),
+          nextQuestionId: 103,
           percentage: 75,
         },
       },
@@ -153,6 +163,7 @@ describe('ChaptersService', () => {
           totalQuestions: 0,
           lastAnsweredQuestionId: null,
           lastAnsweredAt: null,
+          nextQuestionId: null,
           percentage: 0,
         },
       },
