@@ -1,4 +1,10 @@
-import { IsIn, IsInt, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { Transform, TransformFnParams } from 'class-transformer';
 
 const toNumber = ({ value }: TransformFnParams): unknown => {
@@ -16,6 +22,10 @@ export class CreateQuestionDTO {
   @IsNotEmpty()
   @IsString()
   text: string;
+
+  @IsOptional()
+  @IsString()
+  source?: string;
 
   @IsNotEmpty()
   @IsString()
