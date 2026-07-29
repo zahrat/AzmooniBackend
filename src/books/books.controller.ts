@@ -11,6 +11,9 @@ import {
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../users/jwt-auth.guard';
 import type { JwtUser } from '../users/user';
+import { UserRole } from '../../generated/prisma/enums';
+import { Roles } from '../users/roles.decorator';
+import { RolesGuard } from '../users/roles.guard';
 import { BooksService } from './books.service';
 import { CreateBookDTO } from './create-book-dto';
 
@@ -44,6 +47,8 @@ export class BooksController {
     return this.bookService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Post('add')
   createBook(@Body() body: CreateBookDTO) {
     return this.bookService.create(body);

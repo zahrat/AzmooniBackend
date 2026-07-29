@@ -5,6 +5,8 @@ jest.mock('../prisma.service', () => ({
 import { Test, TestingModule } from '@nestjs/testing';
 import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
+import { PrismaService } from '../prisma.service';
+import { RolesGuard } from '../users/roles.guard';
 
 describe('BooksController', () => {
   let controller: BooksController;
@@ -23,6 +25,14 @@ describe('BooksController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BooksController],
       providers: [
+        {
+          provide: PrismaService,
+          useValue: {},
+        },
+        {
+          provide: RolesGuard,
+          useValue: { canActivate: jest.fn().mockReturnValue(true) },
+        },
         {
           provide: BooksService,
           useValue: mockBooksService,

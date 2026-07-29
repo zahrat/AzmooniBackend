@@ -1,9 +1,42 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as bcrypt from 'bcryptjs';
 import { PrismaClient } from '../generated/prisma/client';
+import { UserRole } from '../generated/prisma/enums';
 import { SeedBook, seedBooks } from './seed-data';
 
 const validOptions = new Set(['A', 'B', 'C', 'D']);
+
+interface AdminSeedConfig {
+  email: string;
+  name: string;
+  password: string;
+}
+
+function getAdminSeedConfig(): AdminSeedConfig | null {
+  const email = process.env.ADMIN_EMAIL?.trim();
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!email && !password) {
+    return null;
+  }
+
+  if (!email || !password) {
+    throw new Error(
+      'ADMIN_EMAIL and ADMIN_PASSWORD must both be set to seed an admin',
+    );
+  }
+
+  if (password.length < 12) {
+    throw new Error('ADMIN_PASSWORD must contain at least 12 characters');
+  }
+
+  return {
+    email,
+    password,
+    name: process.env.ADMIN_NAME?.trim() || 'Admin',
+  };
+}
 
 function validateSeedData(books: SeedBook[]) {
   if (books.length === 0) {
@@ -56,6 +89,7 @@ function validateSeedData(books: SeedBook[]) {
 
 async function seed() {
   validateSeedData(seedBooks);
+  const adminConfig = getAdminSeedConfig();
 
   if (process.argv.includes('--dry-run')) {
     console.log(
@@ -63,6 +97,11 @@ async function seed() {
         (count, book) => count + book.questions.length,
         0,
       )} questions.`,
+    );
+    console.log(
+      adminConfig
+        ? `Admin seed configuration is valid for ${adminConfig.email}.`
+        : 'Admin seed skipped: ADMIN_EMAIL and ADMIN_PASSWORD are not set.',
     );
     return;
   }
@@ -77,7 +116,27 @@ async function seed() {
   const prisma = new PrismaClient({ adapter });
 
   try {
+    const adminPasswordHash = adminConfig
+      ? await bcrypt.hash(adminConfig.password, 12)
+      : null;
+
     await prisma.$transaction(async (transaction) => {
+      if (adminConfig && adminPasswordHash) {
+        await transaction.user.upsert({
+          where: { email: adminConfig.email },
+          create: {
+            email: adminConfig.email,
+            name: adminConfig.name,
+            password: adminPasswordHash,
+            role: UserRole.ADMIN,
+          },
+          update: {
+            name: adminConfig.name,
+            role: UserRole.ADMIN,
+          },
+        });
+      }
+
       for (const { questions, ...bookData } of seedBooks) {
         const book = await transaction.book.upsert({
           where: { title: bookData.title },
@@ -141,6 +200,9 @@ async function seed() {
         0,
       )} questions are ready.`,
     );
+    if (adminConfig) {
+      console.log(`Admin account is ready: ${adminConfig.email}`);
+    }
   } finally {
     await prisma.$disconnect();
   }

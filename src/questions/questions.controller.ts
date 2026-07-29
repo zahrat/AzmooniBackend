@@ -19,6 +19,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../users/jwt-auth.guard';
 import type { JwtUser } from '../users/user';
+import { UserRole } from '../../generated/prisma/enums';
+import { Roles } from '../users/roles.decorator';
+import { RolesGuard } from '../users/roles.guard';
 import { CreateQuestionDTO } from './create-question-dto';
 import { PaginationQueryDTO } from './pagination-query.dto';
 import { QuestionAccessGuard } from './question-access.guard';
@@ -44,6 +47,8 @@ interface UploadedImage {
 export class QuestionsController {
   constructor(private readonly questionsService: QuestionsService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Post()
   @UseInterceptors(
     FileInterceptor('image', {

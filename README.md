@@ -31,6 +31,28 @@
 $ npm install
 ```
 
+## Bootstrap an administrator
+
+Set the administrator credentials in your local `.env` file. Do not commit
+that file:
+
+```bash
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=use-a-strong-password
+ADMIN_NAME=Admin
+```
+
+Apply the migrations and run the seed:
+
+```bash
+$ npm run deploy:migrate
+$ npm run seed
+```
+
+The seed stores the administrator in the `User` table with the `ADMIN` role.
+The password is stored only as a bcrypt hash. If the email already belongs to
+a user, the seed promotes that existing account and preserves its password.
+
 ## Compile and run the project
 
 ```bash
