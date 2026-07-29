@@ -11,6 +11,7 @@
     "deploy:migrate": "prisma migrate deploy",
     "seed": "npm run build --silent && node dist/prisma/seed.js",
     "seed:check": "npm run build --silent && node dist/prisma/seed.js --dry-run",
+    "import:data": "npm run build --silent && node dist/prisma/import-data.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -38,6 +39,7 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.22.0",
+    "read-excel-file": "^9.3.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

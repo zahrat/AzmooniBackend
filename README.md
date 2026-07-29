@@ -53,6 +53,51 @@ The seed stores the administrator in the `User` table with the `ADMIN` role.
 The password is stored only as a bcrypt hash. If the email already belongs to
 a user, the seed promotes that existing account and preserves its password.
 
+## Import books, chapters, and questions from Excel
+
+Use the standard workbook template and keep the column names unchanged. The
+`ورود اطلاعات` sheet is imported; each non-empty row represents one question.
+
+The default command is a dry run. It validates the workbook and referenced
+images without writing to the database:
+
+```bash
+$ npm run import:data -- /path/to/questions.xlsx
+```
+
+If the `imageFile` column is used, place the images in one directory and pass
+that directory explicitly:
+
+```bash
+$ npm run import:data -- /path/to/questions.xlsx \
+    --images-dir /path/to/question-images
+```
+
+After the dry run succeeds, apply the same file to staging. The database name
+must exactly match the database in `DATABASE_URL`:
+
+```bash
+$ npm run import:data -- /path/to/questions.xlsx \
+    --images-dir /path/to/question-images \
+    --apply \
+    --confirm-database app_staging
+```
+
+Back up production before importing there, then use its exact database name:
+
+```bash
+$ npm run import:data -- /path/to/questions.xlsx \
+    --images-dir /path/to/question-images \
+    --apply \
+    --confirm-database nestapp
+```
+
+Books are matched by title, chapters by book and chapter order, and questions
+by exact text within a chapter. Re-importing the same workbook updates changed
+fields instead of duplicating records. New question order values are allocated
+atomically. Imported images are validated and stored under content-hashed file
+names, so importing the same image again does not create another copy.
+
 ## Zarinpal payments
 
 The development environment uses Zarinpal Sandbox and does not require a
