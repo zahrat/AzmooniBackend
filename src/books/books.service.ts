@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateBookDTO } from './create-book-dto';
 
@@ -117,6 +121,14 @@ export class BooksService {
   }
 
   async create(bookDto: CreateBookDTO) {
-    await this.prisma.book.create({ data: bookDto });
+    if (bookDto.isPaid && !bookDto.priceToman) {
+      throw new BadRequestException('Paid books must have a price in toman');
+    }
+
+    if (!bookDto.isPaid && bookDto.priceToman !== undefined) {
+      throw new BadRequestException('Free books cannot have a price');
+    }
+
+    return await this.prisma.book.create({ data: bookDto });
   }
 }

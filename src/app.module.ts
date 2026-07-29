@@ -6,6 +6,7 @@ import { BooksModule } from './books/books.module';
 import { QuestionsModule } from './questions/questions.module';
 import { AnswersModule } from './answers/answers.module';
 import { ChaptersModule } from './chapters/chapters.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ChaptersModule } from './chapters/chapters.module';
     ChaptersModule,
     QuestionsModule,
     AnswersModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

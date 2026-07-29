@@ -10,6 +10,8 @@ export type SeedQuestion = {
 export type SeedBook = {
   title: string;
   description: string;
+  isPaid: boolean;
+  priceToman: number | null;
   questions: SeedQuestion[];
 };
 
@@ -18,6 +20,8 @@ export const seedBooks: SeedBook[] = [
     title: 'Clean Code',
     description:
       'پرسش‌هایی دربارهٔ اصول نوشتن کد خوانا و نگه‌داشت‌پذیر از رابرت سی. مارتین',
+    isPaid: true,
+    priceToman: 10_000,
     questions: [
       {
         text: 'هدف اصلی نام‌گذاری معنادار در کد چیست؟',
@@ -146,6 +150,8 @@ export const seedBooks: SeedBook[] = [
     title: 'The Pragmatic Programmer',
     description:
       'پرسش‌هایی دربارهٔ رویکرد عمل‌گرایانه به توسعه و نگه‌داری نرم‌افزار از دیو توماس و اندی هانت',
+    isPaid: false,
+    priceToman: null,
     questions: [
       {
         text: 'اصل «You Aren’t Gonna Need It» چه توصیه‌ای دارد؟',
@@ -273,6 +279,8 @@ export const seedBooks: SeedBook[] = [
     title: 'Refactoring',
     description:
       'پرسش‌هایی دربارهٔ بهبود طراحی کد موجود بدون تغییر رفتار بیرونی، بر پایهٔ کتاب مارتین فاولر',
+    isPaid: false,
+    priceToman: null,
     questions: [
       {
         text: 'Refactoring دقیقاً به چه معناست؟',

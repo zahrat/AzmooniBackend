@@ -18,6 +18,14 @@ enum UserRole {
   ADMIN
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+  EXPIRED
+}
+
 model User {
   id               Int      @id @default(autoincrement())
   email            String   @unique
@@ -30,17 +38,21 @@ model User {
   answers           UserAnswer[]
   favoriteQuestions FavoriteQuestion[]
   bookPurchases     UserBookPurchase[]
+  payments          Payment[]
 }
 
 model Book {
-  id          Int                @id @default(autoincrement())
-  title       String             @unique
+  id          Int      @id @default(autoincrement())
+  title       String   @unique
   description String?
-  isPaid      Boolean            @default(false)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  chapters    Chapter[]
-  purchases   UserBookPurchase[]
+  isPaid      Boolean  @default(false)
+  priceToman  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chapters  Chapter[]
+  purchases UserBookPurchase[]
+  payments  Payment[]
 }
 
 model Chapter {
@@ -70,11 +82,41 @@ model UserBookPurchase {
   @@id([userId, bookId])
 }
 
+model Payment {
+  id             Int           @id @default(autoincrement())
+  userId         Int
+  bookId         Int
+  amountToman    Int
+  status         PaymentStatus @default(PENDING)
+  authority      String?       @unique
+  refId          String?       @unique
+  paymentUrl     String?
+  activeKey      String?       @unique
+  cardPan        String?
+  cardHash       String?
+  feeToman       Int?
+  failureCode    Int?
+  verifyAttempts Int           @default(0)
+  lastVerifiedAt DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  expiresAt      DateTime
+  paidAt         DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([bookId, status])
+  @@index([userId, bookId, status, expiresAt])
+}
+
 model Question {
   id            Int      @id @default(autoincrement())
   chapterId     Int
   order         Int
   text          String
+  source        String?
   imageUrl      String?
   optionA       String
   optionB       String

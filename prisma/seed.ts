@@ -57,6 +57,14 @@ function validateSeedData(books: SeedBook[]) {
       );
     }
 
+    if (
+      (book.isPaid &&
+        (!Number.isInteger(book.priceToman) || (book.priceToman ?? 0) <= 0)) ||
+      (!book.isPaid && book.priceToman !== null)
+    ) {
+      throw new Error(`Invalid payment configuration for ${book.title}`);
+    }
+
     const questionTexts = new Set<string>();
     for (const question of book.questions) {
       if (questionTexts.has(question.text)) {
@@ -141,7 +149,11 @@ async function seed() {
         const book = await transaction.book.upsert({
           where: { title: bookData.title },
           create: bookData,
-          update: { description: bookData.description },
+          update: {
+            description: bookData.description,
+            isPaid: bookData.isPaid,
+            priceToman: bookData.priceToman,
+          },
         });
 
         const chapter = await transaction.chapter.upsert({

@@ -53,6 +53,53 @@ The seed stores the administrator in the `User` table with the `ADMIN` role.
 The password is stored only as a bcrypt hash. If the email already belongs to
 a user, the seed promotes that existing account and preserves its password.
 
+## Zarinpal payments
+
+The development environment uses Zarinpal Sandbox and does not require a
+Zarinpal account:
+
+```bash
+ZARINPAL_SANDBOX=true
+ZARINPAL_MERCHANT_ID=00000000-0000-0000-0000-000000000000
+ZARINPAL_CALLBACK_URL=http://localhost:3000/payments/zarinpal/callback
+```
+
+The seed configures `Clean Code` as a paid demo book priced at 10,000 toman.
+An authenticated user starts a purchase with:
+
+```text
+POST /payments/books/:bookId/request
+```
+
+The response contains `paymentUrl`. Open that URL in a browser to complete the
+Sandbox flow. Zarinpal redirects the browser to:
+
+```text
+GET /payments/zarinpal/callback?Authority=...&Status=OK
+```
+
+The callback verifies the transaction with Zarinpal before granting access.
+Repeated purchase requests reuse the same active payment for 30 minutes instead
+of creating multiple gateway transactions. Payment status can be retrieved by
+its owner:
+
+```text
+GET /payments/:id
+```
+
+If callback verification is interrupted by a temporary network failure, the
+payment remains retryable:
+
+```text
+POST /payments/:id/verify
+```
+
+Callback handling and book-access creation are idempotent, so duplicate
+callbacks do not create duplicate purchases.
+
+For production, set `ZARINPAL_SANDBOX=false`, use the merchant ID issued by
+Zarinpal, and provide a public HTTPS callback URL.
+
 ## Compile and run the project
 
 ```bash

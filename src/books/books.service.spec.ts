@@ -2,6 +2,7 @@ jest.mock('../prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { BooksService } from './books.service';
 import { PrismaService } from '../prisma.service';
@@ -9,9 +10,11 @@ import { PrismaService } from '../prisma.service';
 describe('BooksService', () => {
   let service: BooksService;
   let findMany: jest.Mock;
+  let create: jest.Mock;
 
   beforeEach(async () => {
     findMany = jest.fn();
+    create = jest.fn();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BooksService,
@@ -19,7 +22,7 @@ describe('BooksService', () => {
           provide: PrismaService,
           useValue: {
             book: {
-              create: jest.fn(),
+              create,
               findMany,
               findUnique: jest.fn(),
             },
@@ -137,5 +140,32 @@ describe('BooksService', () => {
       },
       orderBy: { createdAt: 'desc' },
     });
+  });
+
+  it('creates a paid book with a price in toman', async () => {
+    create.mockResolvedValue({
+      id: 1,
+      title: 'Paid book',
+      isPaid: true,
+      priceToman: 10_000,
+    });
+
+    await expect(
+      service.create({
+        title: 'Paid book',
+        isPaid: true,
+        priceToman: 10_000,
+      }),
+    ).resolves.toMatchObject({ id: 1 });
+  });
+
+  it('rejects a paid book without a price', async () => {
+    await expect(
+      service.create({
+        title: 'Paid book',
+        isPaid: true,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(create).not.toHaveBeenCalled();
   });
 });
