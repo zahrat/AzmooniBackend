@@ -117,6 +117,25 @@ describe('QuestionsController', () => {
     );
   });
 
+  it('passes favorite mode for chapter questions', async () => {
+    const request = { user: { id: 7, email: 'user@example.com' } };
+    const pagination = { page: 1, limit: 20 };
+
+    await controller.getByChapterId(
+      request as never,
+      3,
+      'favorite' as never,
+      pagination,
+    );
+
+    expect(mockQuestionsService.findByChapter).toHaveBeenCalledWith(
+      3,
+      'favorite',
+      7,
+      pagination,
+    );
+  });
+
   it('returns questions for a book with pagination', async () => {
     const request = { user: { id: 7, email: 'user@example.com' } };
     const pagination = { page: 3, limit: 25 };

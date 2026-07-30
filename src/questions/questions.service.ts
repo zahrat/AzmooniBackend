@@ -120,9 +120,9 @@ export class QuestionsService {
     userId?: number,
     pagination: PaginationQueryDTO = DEFAULT_PAGINATION,
   ) {
-    if (mode === QuestionMode.Wrong && userId === undefined) {
+    if (mode !== QuestionMode.All && userId === undefined) {
       throw new UnauthorizedException(
-        'Authentication is required to fetch wrong questions',
+        `Authentication is required to fetch ${mode} questions`,
       );
     }
 
@@ -136,6 +136,9 @@ export class QuestionsService {
     const where = {
       chapter: { bookId },
       ...(wrongQuestionIds ? { id: { in: wrongQuestionIds } } : {}),
+      ...(mode === QuestionMode.Favorite
+        ? { favoriteQuestions: { some: { userId: userId! } } }
+        : {}),
     };
 
     const [total, questions] = await Promise.all([
@@ -183,9 +186,9 @@ export class QuestionsService {
     userId?: number,
     pagination: PaginationQueryDTO = DEFAULT_PAGINATION,
   ) {
-    if (mode === QuestionMode.Wrong && userId === undefined) {
+    if (mode !== QuestionMode.All && userId === undefined) {
       throw new UnauthorizedException(
-        'Authentication is required to fetch wrong questions',
+        `Authentication is required to fetch ${mode} questions`,
       );
     }
 
@@ -197,6 +200,9 @@ export class QuestionsService {
     const where = {
       chapterId,
       ...(wrongQuestionIds ? { id: { in: wrongQuestionIds } } : {}),
+      ...(mode === QuestionMode.Favorite
+        ? { favoriteQuestions: { some: { userId: userId! } } }
+        : {}),
     };
 
     const [total, questions] = await Promise.all([

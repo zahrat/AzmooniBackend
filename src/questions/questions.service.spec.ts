@@ -294,6 +294,35 @@ describe('QuestionsService', () => {
     );
   });
 
+  it('filters favorite chapter questions by the authenticated user', async () => {
+    await service.findByChapter(3, QuestionMode.Favorite, 7);
+
+    const where = {
+      chapterId: 3,
+      favoriteQuestions: { some: { userId: 7 } },
+    };
+
+    expect(count).toHaveBeenCalledWith({ where });
+    expect(findMany).toHaveBeenCalledWith({
+      orderBy: [{ order: 'asc' }, { id: 'asc' }],
+      where,
+      include: {
+        favoriteQuestions: {
+          where: { userId: 7 },
+          select: { userId: true },
+        },
+      },
+      skip: 0,
+      take: 20,
+    });
+  });
+
+  it('rejects favorite chapter questions without authentication', async () => {
+    await expect(
+      service.findByChapter(3, QuestionMode.Favorite),
+    ).rejects.toThrow('Authentication is required to fetch favorite questions');
+  });
+
   it('filters wrong questions by the authenticated user', async () => {
     findManyAnswers.mockResolvedValueOnce([
       { questionId: 20, isCorrect: true },
@@ -319,6 +348,29 @@ describe('QuestionsService', () => {
         chapter: { bookId: 12 },
         id: { in: [21] },
       },
+      include: {
+        favoriteQuestions: {
+          where: { userId: 7 },
+          select: { userId: true },
+        },
+      },
+      skip: 0,
+      take: 20,
+    });
+  });
+
+  it('filters favorite book questions by the authenticated user', async () => {
+    await service.findAll(12, QuestionMode.Favorite, 7);
+
+    const where = {
+      chapter: { bookId: 12 },
+      favoriteQuestions: { some: { userId: 7 } },
+    };
+
+    expect(count).toHaveBeenCalledWith({ where });
+    expect(findMany).toHaveBeenCalledWith({
+      orderBy: [{ chapter: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
+      where,
       include: {
         favoriteQuestions: {
           where: { userId: 7 },
@@ -380,6 +432,12 @@ describe('QuestionsService', () => {
   it('rejects wrong mode without an authenticated user', async () => {
     await expect(service.findAll(12, QuestionMode.Wrong)).rejects.toThrow(
       'Authentication is required to fetch wrong questions',
+    );
+  });
+
+  it('rejects favorite mode without an authenticated user', async () => {
+    await expect(service.findAll(12, QuestionMode.Favorite)).rejects.toThrow(
+      'Authentication is required to fetch favorite questions',
     );
   });
 });

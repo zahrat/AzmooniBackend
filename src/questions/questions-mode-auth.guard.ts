@@ -10,7 +10,10 @@ export class QuestionsModeAuthGuard extends AuthGuard('jwt') {
       headers: { authorization?: string };
     }>();
 
-    const requiresAuthentication = request.query.mode === QuestionMode.Wrong;
+    const requiresAuthentication = [
+      QuestionMode.Wrong,
+      QuestionMode.Favorite,
+    ].includes(request.query.mode as QuestionMode);
     const hasAuthorizationHeader = Boolean(request.headers.authorization);
 
     if (!requiresAuthentication && !hasAuthorizationHeader) {

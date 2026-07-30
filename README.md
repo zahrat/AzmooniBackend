@@ -72,11 +72,12 @@ Access levels:
 ### Questions
 
 The book and chapter question-list endpoints accept `page` (default `1`),
-`limit` (default `20`, maximum `100`), and `mode` (`all` or `wrong`, default
-`all`) query parameters. The `wrong` mode requires authentication. Supplying an
-access token in `all` mode includes user-specific state. Paid books require a
-purchase when accessed through the book endpoint; chapter and individual
-question endpoints remain public when their chapter is marked as free.
+`limit` (default `20`, maximum `100`), and `mode` (`all`, `wrong`, or
+`favorite`, default `all`) query parameters. The `wrong` and `favorite` modes
+require authentication. Supplying an access token in `all` mode includes
+user-specific state. Paid books require a purchase when accessed through the
+book endpoint; chapter and individual question endpoints remain public when
+their chapter is marked as free.
 
 | Method | Path | Access | Description |
 | --- | --- | --- | --- |
