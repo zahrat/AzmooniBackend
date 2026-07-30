@@ -254,6 +254,8 @@ describe('QuestionsService', () => {
     findManyAnswers.mockResolvedValueOnce([
       { questionId: 10, isCorrect: false },
       { questionId: 11, isCorrect: true },
+      { questionId: 10, isCorrect: true },
+      { questionId: 11, isCorrect: false },
     ]);
 
     await service.findByChapter(3, QuestionMode.Wrong, 7);
@@ -264,7 +266,6 @@ describe('QuestionsService', () => {
         question: { chapterId: 3 },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      distinct: ['questionId'],
       select: {
         questionId: true,
         isCorrect: true,
@@ -307,7 +308,6 @@ describe('QuestionsService', () => {
         question: { chapter: { bookId: 12 } },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      distinct: ['questionId'],
       select: {
         questionId: true,
         isCorrect: true,

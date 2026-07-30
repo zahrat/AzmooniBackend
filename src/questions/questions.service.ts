@@ -251,14 +251,23 @@ export class QuestionsService {
         question: questionWhere,
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      distinct: ['questionId'],
       select: {
         questionId: true,
         isCorrect: true,
       },
     });
 
+    const seenQuestionIds = new Set<number>();
+
     return latestAnswers
+      .filter((answer) => {
+        if (seenQuestionIds.has(answer.questionId)) {
+          return false;
+        }
+
+        seenQuestionIds.add(answer.questionId);
+        return true;
+      })
       .filter((answer) => !answer.isCorrect)
       .map((answer) => answer.questionId);
   }

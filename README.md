@@ -25,6 +25,86 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## API
+
+The server listens on `http://localhost:3000` by default. Protected endpoints
+expect an access token in the `Authorization: Bearer <token>` header.
+
+Access levels:
+
+- Public: no access token is required.
+- User: a valid access token is required.
+- Admin: the authenticated user must have the `ADMIN` role.
+- Conditional: availability depends on question mode and paid-content access.
+
+### General
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/` | Public | Health-style greeting |
+
+### Users
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/users/signup` | Public | Create a user |
+| `POST` | `/users/signin` | Public | Sign in and receive access and refresh tokens |
+| `POST` | `/users/refresh` | Public | Exchange a refresh token for new tokens |
+| `GET` | `/users/me` | User | Get the authenticated user |
+
+### Books
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/books` | Public | List books and their chapters |
+| `GET` | `/books/wrong` | User | List books containing the user's wrong answers |
+| `GET` | `/books/favorites` | User | List books containing the user's favorite questions |
+| `GET` | `/books/:id` | Public | Get one book and its chapters |
+| `POST` | `/books/add` | Admin | Create a book |
+
+### Chapters
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/chapters` | Admin | Create a chapter |
+| `GET` | `/chapters/book/:bookId` | User | List the chapters in a book |
+
+### Questions
+
+The book and chapter question-list endpoints accept `page` (default `1`),
+`limit` (default `20`, maximum `100`), and `mode` (`all` or `wrong`, default
+`all`) query parameters. The `wrong` mode requires authentication. Supplying an
+access token in `all` mode includes user-specific state. Paid books require a
+purchase when accessed through the book endpoint; chapter and individual
+question endpoints remain public when their chapter is marked as free.
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/questions` | Admin | Create a question using `multipart/form-data`; optional image field: `image` |
+| `GET` | `/questions/book/:bookId` | Conditional | List questions in a book |
+| `GET` | `/questions/chapter/:chapterId` | Conditional | List questions in a chapter |
+| `GET` | `/questions/:id` | Conditional | Get one question |
+| `POST` | `/questions/:id/favorite` | User | Add a question to favorites |
+| `POST` | `/questions/:id/unfavorite` | User | Remove a question from favorites |
+| `GET` | `/questions/favorites/:bookId` | User | List favorite questions in a book; accepts `page` and `limit` |
+
+### Answers
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/answers` | User | Submit or update an answer |
+| `GET` | `/answers/book/:bookId` | User | List the user's answers for a book |
+| `GET` | `/answers/wrong/book/:bookId` | User | List the user's wrong answers for a book |
+
+### Payments
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/payments/books/:bookId/request` | User | Start or resume a book purchase |
+| `GET` | `/payments/zarinpal/callback` | Public | Handle Zarinpal's `Authority` and `Status` callback |
+| `POST` | `/payments/:id/verify` | User | Retry payment verification |
+| `GET` | `/payments/:id` | User | Get an owned payment |
+
 ## Project setup
 
 ```bash
