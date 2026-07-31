@@ -12,6 +12,7 @@ describe('UsersController', () => {
     signup: jest.Mock;
     signIn: jest.Mock;
     refresh: jest.Mock;
+    changePassword: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -19,6 +20,7 @@ describe('UsersController', () => {
       signup: jest.fn(),
       signIn: jest.fn(),
       refresh: jest.fn(),
+      changePassword: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -104,5 +106,21 @@ describe('UsersController', () => {
     };
 
     expect(controller.me(request as never)).toEqual(request.user);
+  });
+
+  it('should delegate password changes to the users service', async () => {
+    const request = {
+      user: { id: 1, email: 'user@example.com' },
+    };
+    const payload = {
+      currentPassword: 'StrongPass123!',
+      newPassword: 'NewStrongPass456!',
+    };
+    usersService.changePassword.mockResolvedValue(undefined);
+
+    await expect(
+      controller.changePassword(request as never, payload),
+    ).resolves.toBeUndefined();
+    expect(usersService.changePassword).toHaveBeenCalledWith(1, payload);
   });
 });

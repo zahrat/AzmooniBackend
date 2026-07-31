@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
@@ -11,6 +12,7 @@ import { PrismaService } from '../prisma.service';
 import { SignInDTO } from './sign-in-dto';
 import { JwtPayload } from './user';
 import { randomUUID } from 'node:crypto';
+import { ChangePasswordDTO } from './change-password-dto';
 
 const ACCESS_TOKEN_TTL_SECONDS = 14 * 24 * 60 * 60;
 const REFRESH_TOKEN_TTL_SECONDS = 24 * 60 * 60;
@@ -111,6 +113,38 @@ export class UsersService {
       email: user.email,
       ...tokens,
     };
+  }
+
+  async changePassword(
+    userId: number,
+    payload: ChangePasswordDTO,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
+    });
+
+    if (
+      !user ||
+      !(await bcrypt.compare(payload.currentPassword, user.password))
+    ) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    if (await bcrypt.compare(payload.newPassword, user.password)) {
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
+    }
+
+    const password = await this.encryptPassword(payload.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password,
+        refreshTokenHash: null,
+      },
+    });
   }
 
   private async issueTokens(

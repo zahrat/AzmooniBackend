@@ -3,7 +3,7 @@ jest.mock('../prisma.service', () => ({
 }));
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma.service';
@@ -224,5 +224,62 @@ describe('UsersService', () => {
         password: 'WrongPass123!',
       }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('should change the password and revoke the refresh token', async () => {
+    const currentPassword = 'StrongPass123!';
+    prisma.user.findUnique.mockResolvedValue({
+      password: await bcrypt.hash(currentPassword, 10),
+    });
+
+    await expect(
+      service.changePassword(1, {
+        currentPassword,
+        newPassword: 'NewStrongPass456!',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 1 },
+      select: { password: true },
+    });
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: {
+        // Jest asymmetric matchers are intentionally typed as any.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        password: expect.not.stringMatching('NewStrongPass456!'),
+        refreshTokenHash: null,
+      },
+    });
+  });
+
+  it('should reject a password change when the current password is invalid', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      password: await bcrypt.hash('StrongPass123!', 10),
+    });
+
+    await expect(
+      service.changePassword(1, {
+        currentPassword: 'WrongPass123!',
+        newPassword: 'NewStrongPass456!',
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('should reject changing to the current password', async () => {
+    const currentPassword = 'StrongPass123!';
+    prisma.user.findUnique.mockResolvedValue({
+      password: await bcrypt.hash(currentPassword, 10),
+    });
+
+    await expect(
+      service.changePassword(1, {
+        currentPassword,
+        newPassword: currentPassword,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
   });
 });
