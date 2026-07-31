@@ -35,12 +35,13 @@ describe('PaymentsController', () => {
       user: { id: 7, email: 'user@example.com' },
     };
 
-    await controller.requestBookPayment(request as never, 3);
+    await controller.requestBookPayment(request as never, 3, 'true');
 
     expect(paymentsService.requestBookPayment).toHaveBeenCalledWith(
       7,
       'user@example.com',
       3,
+      true,
     );
   });
 

@@ -142,6 +142,43 @@ describe('PaymentsService', () => {
     expect(gateway.requestPayment).not.toHaveBeenCalled();
   });
 
+  it('expires the active payment and requests a new authority when fresh is true', async () => {
+    mockBook();
+    prisma.payment.findUnique.mockResolvedValueOnce(pendingPayment);
+    prisma.payment.create.mockResolvedValue({ id: 22 });
+    gateway.requestPayment.mockResolvedValue({
+      authority: 'S-new',
+      feeToman: 0,
+      paymentUrl: 'https://sandbox.zarinpal.com/pg/StartPay/S-new',
+    });
+    prisma.payment.update.mockResolvedValue({
+      ...pendingPayment,
+      id: 22,
+      authority: 'S-new',
+      paymentUrl: 'https://sandbox.zarinpal.com/pg/StartPay/S-new',
+    });
+
+    await expect(
+      service.requestBookPayment(7, 'user@example.com', 3, true),
+    ).resolves.toMatchObject({
+      paymentId: 22,
+      authority: 'S-new',
+    });
+
+    expect(prisma.payment.updateMany).toHaveBeenNthCalledWith(2, {
+      where: {
+        id: 21,
+        activeKey: '7:3',
+        status: PaymentStatus.PENDING,
+      },
+      data: {
+        status: PaymentStatus.EXPIRED,
+        activeKey: null,
+      },
+    });
+    expect(gateway.requestPayment).toHaveBeenCalledTimes(1);
+  });
+
   it('expires a stale active payment before creating another one', async () => {
     mockBook();
     prisma.payment.create.mockResolvedValue({ id: 22 });

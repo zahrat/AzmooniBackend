@@ -30,11 +30,13 @@ export class PaymentsController {
   requestBookPayment(
     @Req() request: AuthenticatedRequest,
     @Param('bookId', ParseIntPipe) bookId: number,
+    @Query('fresh') fresh?: string,
   ) {
     return this.paymentsService.requestBookPayment(
       request.user.id,
       request.user.email,
       bookId,
+      fresh === 'true',
     );
   }
 

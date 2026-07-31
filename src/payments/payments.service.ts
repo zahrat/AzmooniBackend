@@ -27,7 +27,12 @@ export class PaymentsService {
     private readonly gateway: PaymentGateway,
   ) {}
 
-  async requestBookPayment(userId: number, email: string, bookId: number) {
+  async requestBookPayment(
+    userId: number,
+    email: string,
+    bookId: number,
+    fresh = false,
+  ) {
     const book = await this.prisma.book.findUnique({
       where: { id: bookId },
       select: {
@@ -71,8 +76,22 @@ export class PaymentsService {
     const existingPayment = await this.prisma.payment.findUnique({
       where: { activeKey },
     });
-    if (existingPayment) {
+    if (existingPayment && !fresh) {
       return this.activePaymentResponse(existingPayment);
+    }
+
+    if (existingPayment) {
+      await this.prisma.payment.updateMany({
+        where: {
+          id: existingPayment.id,
+          activeKey,
+          status: PaymentStatus.PENDING,
+        },
+        data: {
+          status: PaymentStatus.EXPIRED,
+          activeKey: null,
+        },
+      });
     }
 
     const expiresAt = new Date(now.getTime() + PAYMENT_TTL_MS);
