@@ -237,6 +237,7 @@ describe('PaymentsService', () => {
     await expect(
       service.handleZarinpalCallback(pendingPayment.authority, 'NOK'),
     ).resolves.toEqual({
+      amountToman: 10_000,
       paymentId: 21,
       bookId: 3,
       status: PaymentStatus.CANCELED,
@@ -268,6 +269,7 @@ describe('PaymentsService', () => {
     await expect(
       service.handleZarinpalCallback(pendingPayment.authority, 'OK'),
     ).resolves.toEqual({
+      amountToman: 10_000,
       paymentId: 21,
       bookId: 3,
       status: PaymentStatus.PAID,

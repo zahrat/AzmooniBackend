@@ -362,12 +362,14 @@ export class PaymentsService {
   }
 
   private callbackResponse(payment: {
+    amountToman: number;
     id: number;
     bookId: number;
     status: PaymentStatus;
     refId: string | null;
   }) {
     return {
+      amountToman: payment.amountToman,
       paymentId: payment.id,
       bookId: payment.bookId,
       status: payment.status,
