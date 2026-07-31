@@ -57,11 +57,7 @@ function validateSeedData(books: SeedBook[]) {
       );
     }
 
-    if (
-      (book.isPaid &&
-        (!Number.isInteger(book.priceToman) || (book.priceToman ?? 0) <= 0)) ||
-      (!book.isPaid && book.priceToman !== null)
-    ) {
+    if (!Number.isInteger(book.priceToman) || book.priceToman <= 0) {
       throw new Error(`Invalid payment configuration for ${book.title}`);
     }
 
@@ -151,7 +147,6 @@ async function seed() {
           create: bookData,
           update: {
             description: bookData.description,
-            isPaid: bookData.isPaid,
             priceToman: bookData.priceToman,
           },
         });

@@ -83,18 +83,17 @@ describe('PaymentsService', () => {
     service = new PaymentsService(prisma as unknown as PrismaService, gateway);
   });
 
-  function mockPaidBook(purchases: { userId: number }[] = []) {
+  function mockBook(purchases: { userId: number }[] = []) {
     prisma.book.findUnique.mockResolvedValue({
       id: 3,
       title: 'Clean Code',
-      isPaid: true,
       priceToman: 10_000,
       purchases,
     });
   }
 
   it('creates a pending payment with an expiry and returns its gateway URL', async () => {
-    mockPaidBook();
+    mockBook();
     prisma.payment.create.mockResolvedValue({ id: 21 });
     gateway.requestPayment.mockResolvedValue({
       authority: pendingPayment.authority,
@@ -129,7 +128,7 @@ describe('PaymentsService', () => {
   });
 
   it('reuses an active payment instead of contacting the gateway again', async () => {
-    mockPaidBook();
+    mockBook();
     prisma.payment.findUnique.mockResolvedValue(pendingPayment);
 
     await expect(
@@ -144,7 +143,7 @@ describe('PaymentsService', () => {
   });
 
   it('expires a stale active payment before creating another one', async () => {
-    mockPaidBook();
+    mockBook();
     prisma.payment.create.mockResolvedValue({ id: 22 });
     gateway.requestPayment.mockResolvedValue({
       authority: 'S-new',
@@ -177,11 +176,10 @@ describe('PaymentsService', () => {
     });
   });
 
-  it('rejects payment for a free book', async () => {
+  it('rejects payment for a book without a valid price', async () => {
     prisma.book.findUnique.mockResolvedValue({
       id: 3,
-      title: 'Free book',
-      isPaid: false,
+      title: 'Invalid book',
       priceToman: null,
       purchases: [],
     });
@@ -193,7 +191,7 @@ describe('PaymentsService', () => {
   });
 
   it('rejects a book the user already owns', async () => {
-    mockPaidBook([{ userId: 7 }]);
+    mockBook([{ userId: 7 }]);
 
     await expect(
       service.requestBookPayment(7, 'user@example.com', 3),
@@ -201,7 +199,7 @@ describe('PaymentsService', () => {
   });
 
   it('releases the active lock after a failed gateway request', async () => {
-    mockPaidBook();
+    mockBook();
     prisma.payment.create.mockResolvedValue({ id: 21 });
     gateway.requestPayment.mockRejectedValue(
       new PaymentGatewayError('Invalid terminal', -10),

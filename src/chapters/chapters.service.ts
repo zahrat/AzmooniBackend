@@ -24,7 +24,6 @@ export class ChaptersService {
       this.prisma.book.findUnique({
         where: { id: bookId },
         select: {
-          isPaid: true,
           purchases: {
             where: { userId },
             select: { userId: true },
@@ -100,7 +99,8 @@ export class ChaptersService {
       >(),
     );
 
-    return chapters.map(({ _count, nextQuestionOrder: _, ...chapter }) => {
+    return chapters.map(({ _count, nextQuestionOrder, ...chapter }) => {
+      void nextQuestionOrder;
       const chapterProgress = progressByChapter.get(chapter.id);
       const answered = chapterProgress?.answeredQuestions ?? 0;
       const total = _count.questions;
@@ -120,7 +120,7 @@ export class ChaptersService {
 
       return {
         ...chapter,
-        canAccess: !book.isPaid || chapter.isFree || hasPurchasedBook,
+        canAccess: chapter.isFree || hasPurchasedBook,
         progress: {
           answeredQuestions: answered,
           totalQuestions: total,

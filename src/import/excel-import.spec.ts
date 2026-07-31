@@ -7,8 +7,7 @@ import {
 const validRow = [
   'ریاضی دهم',
   'توضیح کتاب',
-  'FALSE',
-  null,
+  10_000,
   'فصل اول',
   1,
   'TRUE',
@@ -29,7 +28,7 @@ describe('parseImportSheet', () => {
       [...IMPORT_HEADERS],
       validRow,
       [
-        ...validRow.slice(0, 4),
+        ...validRow.slice(0, 3),
         'فصل دوم',
         2,
         'FALSE',
@@ -58,7 +57,7 @@ describe('parseImportSheet', () => {
 
   it('accepts Persian digits for integer fields', () => {
     const row = [...validRow];
-    row[5] = '۲';
+    row[4] = '۲';
 
     const plan = parseImportSheet([[...IMPORT_HEADERS], row]);
 
@@ -78,13 +77,12 @@ describe('parseImportSheet', () => {
     );
   });
 
-  it('rejects inconsistent payment configuration', () => {
+  it('rejects a missing book price', () => {
     const invalidRow = [...validRow];
-    invalidRow[2] = 'TRUE';
-    invalidRow[3] = null;
+    invalidRow[2] = null;
 
     expect(() => parseImportSheet([[...IMPORT_HEADERS], invalidRow])).toThrow(
-      'a paid book must have a positive priceToman',
+      'priceToman is required',
     );
   });
 

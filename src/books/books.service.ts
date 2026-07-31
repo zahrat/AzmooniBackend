@@ -121,12 +121,8 @@ export class BooksService {
   }
 
   async create(bookDto: CreateBookDTO) {
-    if (bookDto.isPaid && !bookDto.priceToman) {
-      throw new BadRequestException('Paid books must have a price in toman');
-    }
-
-    if (!bookDto.isPaid && bookDto.priceToman !== undefined) {
-      throw new BadRequestException('Free books cannot have a price');
+    if (!bookDto.priceToman) {
+      throw new BadRequestException('Books must have a price in toman');
     }
 
     return await this.prisma.book.create({ data: bookDto });

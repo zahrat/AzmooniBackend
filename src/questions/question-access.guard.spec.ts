@@ -16,13 +16,12 @@ describe('QuestionAccessGuard', () => {
       }),
     }) as ExecutionContext;
 
-  it('allows a free chapter of a paid book', async () => {
+  it('allows a free chapter', async () => {
     const prisma = {
       chapter: {
         findUnique: jest.fn().mockResolvedValue({
           bookId: 1,
           isFree: true,
-          book: { isPaid: true },
         }),
       },
     };
@@ -36,7 +35,7 @@ describe('QuestionAccessGuard', () => {
   it('allows purchased content', async () => {
     const prisma = {
       book: {
-        findUnique: jest.fn().mockResolvedValue({ id: 1, isPaid: true }),
+        findUnique: jest.fn().mockResolvedValue({ id: 1 }),
       },
       userBookPurchase: {
         findUnique: jest.fn().mockResolvedValue({ userId: 7 }),
@@ -49,14 +48,13 @@ describe('QuestionAccessGuard', () => {
     );
   });
 
-  it('rejects paid content without a purchase', async () => {
+  it('rejects non-free content without a purchase', async () => {
     const prisma = {
       question: {
         findUnique: jest.fn().mockResolvedValue({
           chapter: {
             bookId: 1,
             isFree: false,
-            book: { isPaid: true },
           },
         }),
       },

@@ -21,7 +21,7 @@ describe('ChaptersService', () => {
     findQuestions = jest.fn().mockResolvedValue([]);
     findPurchaseState = jest
       .fn()
-      .mockResolvedValue({ isPaid: false, purchases: [] });
+      .mockResolvedValue({ purchases: [{ userId: 7 }] });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -31,10 +31,14 @@ describe('ChaptersService', () => {
           useValue: {
             book: {
               findUnique: jest.fn((...args: unknown[]) => {
-                const query = args[0] as { select?: { isPaid?: boolean } };
-                return query.select?.isPaid
-                  ? findPurchaseState(...args)
-                  : findBook(...args);
+                const query = args[0] as {
+                  select?: { purchases?: unknown };
+                };
+                return (
+                  query.select?.purchases
+                    ? findPurchaseState(...args)
+                    : findBook(...args)
+                ) as unknown;
               }),
             },
             chapter: {
@@ -81,7 +85,6 @@ describe('ChaptersService', () => {
     expect(findPurchaseState).toHaveBeenCalledWith({
       where: { id: 1 },
       select: {
-        isPaid: true,
         purchases: {
           where: { userId: 7 },
           select: { userId: true },
@@ -194,8 +197,8 @@ describe('ChaptersService', () => {
     ]);
   });
 
-  it('only grants access to free chapters of an unpurchased paid book', async () => {
-    findPurchaseState.mockResolvedValue({ isPaid: true, purchases: [] });
+  it('only grants access to free chapters of an unpurchased book', async () => {
+    findPurchaseState.mockResolvedValue({ purchases: [] });
     findChapters.mockResolvedValue([
       {
         id: 10,
@@ -223,9 +226,8 @@ describe('ChaptersService', () => {
     ]);
   });
 
-  it('grants access to every chapter after purchasing a paid book', async () => {
+  it('grants access to every chapter after purchasing a book', async () => {
     findPurchaseState.mockResolvedValue({
-      isPaid: true,
       purchases: [{ userId: 7 }],
     });
     findChapters.mockResolvedValue([

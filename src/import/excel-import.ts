@@ -11,7 +11,6 @@ export const IMPORT_SHEET_NAME = 'ورود اطلاعات';
 export const IMPORT_HEADERS = [
   'bookTitle',
   'bookDescription',
-  'isPaid',
   'priceToman',
   'chapterTitle',
   'chapterOrder',
@@ -57,8 +56,7 @@ export interface ImportChapter {
 export interface ImportBook {
   title: string;
   description: string | null;
-  isPaid: boolean;
-  priceToman: number | null;
+  priceToman: number;
   chapters: ImportChapter[];
 }
 
@@ -74,8 +72,7 @@ interface ParsedRow {
   rowNumber: number;
   bookTitle: string;
   bookDescription: string | null;
-  isPaid: boolean;
-  priceToman: number | null;
+  priceToman: number;
   chapterTitle: string;
   chapterOrder: number;
   isFree: boolean;
@@ -244,61 +241,53 @@ function parseRows(rows: SheetData): ParsedRow[] {
     const rowErrorsBefore = errors.length;
     const bookTitle = requiredText(row[0], rowNumber, 'bookTitle', errors);
     const bookDescription = optionalText(row[1]);
-    const isPaid = parseBoolean(row[2], rowNumber, 'isPaid', errors);
     const priceToman = parseInteger(
-      row[3],
+      row[2],
       rowNumber,
       'priceToman',
       errors,
-      false,
+      true,
     );
     const chapterTitle = requiredText(
-      row[4],
+      row[3],
       rowNumber,
       'chapterTitle',
       errors,
     );
     const chapterOrder = parseInteger(
-      row[5],
+      row[4],
       rowNumber,
       'chapterOrder',
       errors,
       true,
     );
-    const isFree = parseBoolean(row[6], rowNumber, 'isFree', errors);
+    const isFree = parseBoolean(row[5], rowNumber, 'isFree', errors);
     const questionText = requiredText(
-      row[7],
+      row[6],
       rowNumber,
       'questionText',
       errors,
     );
-    const source = optionalText(row[8]);
-    const optionA = requiredText(row[9], rowNumber, 'optionA', errors);
-    const optionB = requiredText(row[10], rowNumber, 'optionB', errors);
-    const optionC = requiredText(row[11], rowNumber, 'optionC', errors);
-    const optionD = requiredText(row[12], rowNumber, 'optionD', errors);
-    const correctOption = textValue(row[13]).toUpperCase();
-    const imageFile = optionalText(row[14]);
+    const source = optionalText(row[7]);
+    const optionA = requiredText(row[8], rowNumber, 'optionA', errors);
+    const optionB = requiredText(row[9], rowNumber, 'optionB', errors);
+    const optionC = requiredText(row[10], rowNumber, 'optionC', errors);
+    const optionD = requiredText(row[11], rowNumber, 'optionD', errors);
+    const correctOption = textValue(row[12]).toUpperCase();
+    const imageFile = optionalText(row[13]);
 
     if (!['A', 'B', 'C', 'D'].includes(correctOption)) {
       errors.push(
         `Row ${rowNumber}: correctOption must be A, B, C, or D; received "${
-          textValue(row[13]) || '(empty)'
+          textValue(row[12]) || '(empty)'
         }".`,
       );
     }
     if (chapterOrder !== null && chapterOrder < 1) {
       errors.push(`Row ${rowNumber}: chapterOrder must be at least 1.`);
     }
-    if (isPaid && (priceToman === null || priceToman <= 0)) {
-      errors.push(
-        `Row ${rowNumber}: a paid book must have a positive priceToman.`,
-      );
-    }
-    if (!isPaid && priceToman !== null) {
-      errors.push(
-        `Row ${rowNumber}: a free book must have an empty priceToman.`,
-      );
+    if (priceToman !== null && priceToman <= 0) {
+      errors.push(`Row ${rowNumber}: priceToman must be positive.`);
     }
     if (imageFile) {
       if (imageFile.includes('/') || imageFile.includes('\\')) {
@@ -316,13 +305,13 @@ function parseRows(rows: SheetData): ParsedRow[] {
     if (
       errors.length === rowErrorsBefore &&
       chapterOrder !== null &&
+      priceToman !== null &&
       ['A', 'B', 'C', 'D'].includes(correctOption)
     ) {
       parsedRows.push({
         rowNumber,
         bookTitle,
         bookDescription,
-        isPaid,
         priceToman,
         chapterTitle,
         chapterOrder,
@@ -355,7 +344,6 @@ function parseRows(rows: SheetData): ParsedRow[] {
 function sameBookConfiguration(book: ImportBook, row: ParsedRow): boolean {
   return (
     book.description === row.bookDescription &&
-    book.isPaid === row.isPaid &&
     book.priceToman === row.priceToman
   );
 }
@@ -373,7 +361,6 @@ function buildPlan(rows: ParsedRow[]): ImportPlan {
       book = {
         title: row.bookTitle,
         description: row.bookDescription,
-        isPaid: row.isPaid,
         priceToman: row.priceToman,
         chapters: [],
       };

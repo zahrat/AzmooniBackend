@@ -146,25 +146,22 @@ describe('BooksService', () => {
     create.mockResolvedValue({
       id: 1,
       title: 'Paid book',
-      isPaid: true,
       priceToman: 10_000,
     });
 
     await expect(
       service.create({
         title: 'Paid book',
-        isPaid: true,
         priceToman: 10_000,
       }),
     ).resolves.toMatchObject({ id: 1 });
   });
 
-  it('rejects a paid book without a price', async () => {
+  it('rejects a book without a price', async () => {
     await expect(
       service.create({
         title: 'Paid book',
-        isPaid: true,
-      }),
+      } as never),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(create).not.toHaveBeenCalled();
   });

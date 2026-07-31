@@ -45,7 +45,6 @@ model Book {
   id          Int      @id @default(autoincrement())
   title       String   @unique
   description String?
-  isPaid      Boolean  @default(false)
   priceToman  Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

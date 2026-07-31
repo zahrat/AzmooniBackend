@@ -1,11 +1,4 @@
-import {
-  IsBoolean,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateBookDTO {
   @IsString()
@@ -16,12 +9,7 @@ export class CreateBookDTO {
   @IsOptional()
   description?: string;
 
-  @IsBoolean()
-  @IsOptional()
-  isPaid?: boolean;
-
   @IsInt()
   @Min(1)
-  @IsOptional()
-  priceToman?: number;
+  priceToman: number;
 }

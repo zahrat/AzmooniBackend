@@ -33,7 +33,6 @@ export class PaymentsService {
       select: {
         id: true,
         title: true,
-        isPaid: true,
         priceToman: true,
         purchases: {
           where: { userId },
@@ -45,10 +44,6 @@ export class PaymentsService {
 
     if (!book) {
       throw new NotFoundException('Book not found');
-    }
-
-    if (!book.isPaid) {
-      throw new BadRequestException('This book is free');
     }
 
     if (!book.priceToman || book.priceToman <= 0) {

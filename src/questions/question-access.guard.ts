@@ -21,30 +21,26 @@ export class QuestionAccessGuard implements CanActivate {
     const userId = request.user?.id;
     const { bookId, chapterId, id: questionId } = request.params;
 
-    let access: { bookId: number; isFree: boolean; isPaid: boolean } | null;
+    let access: { bookId: number; isFree: boolean } | null;
 
     if (bookId !== undefined) {
       const book = await this.prisma.book.findUnique({
         where: { id: Number(bookId) },
-        select: { id: true, isPaid: true },
+        select: { id: true },
       });
-      access = book
-        ? { bookId: book.id, isFree: false, isPaid: book.isPaid }
-        : null;
+      access = book ? { bookId: book.id, isFree: false } : null;
     } else if (chapterId !== undefined) {
       const chapter = await this.prisma.chapter.findUnique({
         where: { id: Number(chapterId) },
         select: {
           bookId: true,
           isFree: true,
-          book: { select: { isPaid: true } },
         },
       });
       access = chapter
         ? {
             bookId: chapter.bookId,
             isFree: chapter.isFree,
-            isPaid: chapter.book.isPaid,
           }
         : null;
     } else {
@@ -55,7 +51,6 @@ export class QuestionAccessGuard implements CanActivate {
             select: {
               bookId: true,
               isFree: true,
-              book: { select: { isPaid: true } },
             },
           },
         },
@@ -64,12 +59,11 @@ export class QuestionAccessGuard implements CanActivate {
         ? {
             bookId: question.chapter.bookId,
             isFree: question.chapter.isFree,
-            isPaid: question.chapter.book.isPaid,
           }
         : null;
     }
 
-    if (!access || !access.isPaid || access.isFree) {
+    if (!access || access.isFree) {
       return true;
     }
 

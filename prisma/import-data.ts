@@ -336,21 +336,18 @@ async function applyImport(
               data: {
                 title: bookInput.title,
                 description: bookInput.description,
-                isPaid: bookInput.isPaid,
                 priceToman: bookInput.priceToman,
               },
             });
             summary.booksCreated++;
           } else if (
             !sameNullable(existingBook.description, bookInput.description) ||
-            existingBook.isPaid !== bookInput.isPaid ||
             existingBook.priceToman !== bookInput.priceToman
           ) {
             book = await transaction.book.update({
               where: { id: existingBook.id },
               data: {
                 description: bookInput.description,
-                isPaid: bookInput.isPaid,
                 priceToman: bookInput.priceToman,
               },
             });
