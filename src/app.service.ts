@@ -1,39 +1,240 @@
 import { Injectable } from '@nestjs/common';
 
+type PageSection = {
+  description?: string;
+  items?: Array<{ title: string; description: string }>;
+  footer?: string;
+  title: string;
+};
+
 @Injectable()
 export class AppService {
   getEcommerceTrustPage(): string {
-    return renderEcommerceTrustPage();
+    return this.getHomePage();
+  }
+
+  getHomePage(): string {
+    return renderPage({
+      badge: 'فروش کتاب و سوالات آزمونی',
+      description:
+        'آزمونی یک سرویس آموزشی برای خرید کتاب، مرور فصل‌ها، حل سوالات و مدیریت پرداخت‌های کاربران است. این صفحه برای آماده‌سازی همین سایت جهت دریافت اینماد نوشته شده است.',
+      heroTitle: 'سایت آموزشی و فروشگاهی شما باید هویت، محتوا و فرایند خرید روشن داشته باشد',
+      primaryAction: { href: '#checklist', label: 'دیدن الزامات' },
+      secondaryAction: {
+        href: '/about',
+        label: 'درباره ما',
+      },
+      sidebarTitle: 'چیزهایی که همین سایت دارد',
+      sidebarItems: [
+        'فروش کتاب‌ها و محتوای آموزشی',
+        'نمایش فصل‌ها و سوالات هر کتاب',
+        'احراز هویت کاربر با موبایل و رمز یکبارمصرف',
+        'پرداخت و فعال‌سازی دسترسی به کتاب',
+      ],
+      sections: [
+        {
+          title: 'الزامات اینماد برای این سایت',
+          description:
+            'اگر این موارد روی سایت مشخص و درست باشند، بررسی اینماد برای یک فروشگاه محتوای آموزشی خیلی راحت‌تر می‌شود.',
+          items: [
+            {
+              title: 'هویت و اطلاعات تماس واقعی',
+              description:
+                'نام صاحب کسب‌وکار یا شرکت، آدرس، تلفن ثابت، موبایل و ایمیل پشتیبانی باید واقعی و یکدست باشند.',
+            },
+            {
+              title: 'صفحات حقوقی کامل',
+              description:
+                'صفحات «درباره ما»، «قوانین و مقررات» و «حریم خصوصی» باید دقیقاً با مدل فروش کتاب و سوالات این سایت هماهنگ باشند.',
+            },
+            {
+              title: 'فرایند خرید و پرداخت شفاف',
+              description:
+                'کاربر باید قبل از پرداخت بداند چه کتابی می‌خرد، قیمت چیست، دسترسی بعد از پرداخت چگونه فعال می‌شود و وضعیت سفارش کجا دیده می‌شود.',
+            },
+            {
+              title: 'دامنه و مالکیت مشخص',
+              description:
+                'دامنه بهتر است به نام مالک یا شرکت ثبت‌شده باشد و نام برند، دامنه و اطلاعات تماس همدیگر را تأیید کنند.',
+            },
+            {
+              title: 'امنیت و HTTPS',
+              description:
+                'سایت باید با HTTPS اجرا شود، فرم‌های ورود و پرداخت سالم باشند و هیچ بخش حساسی بدون امنیت منتقل نشود.',
+            },
+          ],
+          footer:
+            'اگر بخواهید، همین متن را می‌توانیم یک پله رسمی‌تر کنیم تا مستقیم داخل سایتتان استفاده شود.',
+        },
+      ],
+    });
+  }
+
+  getAboutPage(): string {
+    return renderPage({
+      badge: 'درباره ما',
+      description:
+        'آزمونی یک سامانه آموزشی برای مرور کتاب‌ها، سوالات، پاسخ‌ها و خرید محتوای آموزشی است. کاربران بعد از ورود، می‌توانند کتاب‌ها را ببینند، سوالات را مرور کنند و در صورت نیاز خرید انجام دهند.',
+      heroTitle: 'آزمونی یک سامانه آموزشی برای کتاب‌ها و سوالات آزمونی است',
+      primaryAction: { href: '/', label: 'بازگشت به صفحه اصلی' },
+      secondaryAction: { href: '/terms', label: 'قوانین و مقررات' },
+      sidebarTitle: 'در این صفحه چه بگویید',
+      sidebarItems: [
+        'تمرکز روی کتاب‌ها، فصل‌ها و سوالات آموزشی',
+        'نحوه ثبت‌نام و ورود با موبایل',
+        'خرید و فعال‌سازی دسترسی به کتاب‌ها',
+        'پشتیبانی و راه ارتباطی با تیم',
+      ],
+      sections: [
+        {
+          title: 'متن پیشنهادی برای درباره ما',
+          description:
+            'این صفحه باید روشن کند که سایت دقیقا چه کاری انجام می‌دهد و کاربر بعد از ورود چه انتظاری داشته باشد.',
+          items: [
+            {
+              title: 'هویت روشن',
+              description:
+                'نام برند، نوع فعالیت و مخاطب هدف را صریح بنویسید.',
+            },
+            {
+              title: 'محصول و خدمت اصلی',
+              description:
+                'بگویید سایت برای خرید کتاب، دسترسی به فصل‌ها و مرور سوالات طراحی شده است.',
+            },
+            {
+              title: 'نحوه استفاده',
+              description:
+                'توضیح دهید کاربر با ثبت‌نام، ورود و پرداخت چگونه به محتوای خریداری‌شده دسترسی می‌گیرد.',
+            },
+            {
+              title: 'پشتیبانی',
+              description:
+                'راه‌های تماس و پشتیبانی را با اطلاعات صفحه تماس یکسان نگه دارید.',
+            },
+          ],
+          footer:
+            'اگر بخواهی، این صفحه را می‌شود به متن رسمی‌تر و آماده انتشار در سایت هم تبدیل کرد.',
+        },
+      ],
+    });
+  }
+
+  getTermsPage(): string {
+    return renderPage({
+      badge: 'قوانین و مقررات',
+      description:
+        'این صفحه باید شرایط خرید کتاب، دسترسی به سوالات، بازگشت وجه، و مسئولیت کاربر و سایت را شفاف توضیح دهد.',
+      heroTitle: 'قوانین و مقررات این سایت باید برای خرید محتوای آموزشی دقیق باشد',
+      primaryAction: { href: '/', label: 'بازگشت به صفحه اصلی' },
+      secondaryAction: { href: '/privacy', label: 'حریم خصوصی' },
+      sidebarTitle: 'بندهای مهم این سایت',
+      sidebarItems: [
+        'ثبت سفارش و فعال شدن دسترسی',
+        'پرداخت و صدور رسید',
+        'قوانین استفاده از کتاب‌ها و سوالات',
+        'شرایط لغو و بازپرداخت',
+      ],
+      sections: [
+        {
+          title: 'محتوای پیشنهادی قوانین و مقررات',
+          description:
+            'برای سایت آموزشی بهتر است شرایط استفاده واضح باشد و به کاربر بگوید بعد از پرداخت چه چیزی دریافت می‌کند.',
+          items: [
+            {
+              title: 'ثبت سفارش',
+              description:
+                'مشخص کنید سفارش چه زمانی نهایی می‌شود و دسترسی چه زمانی فعال می‌شود.',
+            },
+            {
+              title: 'پرداخت و قیمت',
+              description:
+                'قیمت کتاب‌ها، هزینه‌های احتمالی و وضعیت مالیات یا کارمزد را شفاف بنویسید.',
+            },
+            {
+              title: 'تحویل محتوا',
+              description:
+                'اگر تحویل دیجیتال است، توضیح دهید دسترسی از چه مسیر و در چه بازه‌ای فعال می‌شود.',
+            },
+            {
+              title: 'لغو و بازپرداخت',
+              description:
+                'شرایط لغو، برگشت وجه و محدودیت‌های آن را صریح و قابل اجرا بنویسید.',
+            },
+          ],
+          footer:
+            'برای محتوای آموزشی، شفافیت درباره دسترسی به کتاب و سوالات از همه چیز مهم‌تر است.',
+        },
+      ],
+    });
+  }
+
+  getPrivacyPage(): string {
+    return renderPage({
+      badge: 'حریم خصوصی',
+      description:
+        'این سایت برای ورود، خرید و پشتیبانی اطلاعاتی مثل شماره موبایل، نام، داده‌های پرداخت و سوابق دسترسی را پردازش می‌کند. این صفحه باید این رفتار را روشن کند.',
+      heroTitle: 'حریم خصوصی باید دقیق بگوید چه داده‌ای را چرا نگه می‌دارید',
+      primaryAction: { href: '/', label: 'بازگشت به صفحه اصلی' },
+      secondaryAction: { href: '/about', label: 'درباره ما' },
+      sidebarTitle: 'داده‌هایی که این سایت پردازش می‌کند',
+      sidebarItems: [
+        'شماره موبایل برای ورود و پشتیبانی',
+        'نام و اطلاعات پروفایل کاربر',
+        'سوابق خرید و پرداخت',
+        'اطلاعات مرور و کوکی‌ها',
+      ],
+      sections: [
+        {
+          title: 'محورهای اصلی حریم خصوصی',
+          description:
+            'متن این صفحه باید با رفتار واقعی سایت هم‌خوان باشد و چیزی را که واقعاً جمع می‌کنید، دقیق توضیح دهد.',
+          items: [
+            {
+              title: 'نوع داده‌ها',
+              description:
+                'نوع داده‌هایی را که از کاربر می‌گیرید دقیق بنویسید.',
+            },
+            {
+              title: 'استفاده از داده‌ها',
+              description:
+                'توضیح دهید داده‌ها برای ورود، فعال‌سازی خرید، پشتیبانی و بهبود خدمات استفاده می‌شوند.',
+            },
+            {
+              title: 'نگهداری و امنیت',
+              description:
+                'بگویید داده‌ها چگونه نگهداری می‌شوند و چه تدابیر امنیتی برای آن‌ها دارید.',
+            },
+            {
+              title: 'اشتراک‌گذاری',
+              description:
+                'اگر اطلاعات با درگاه پرداخت، سرویس پیامک یا ابزار تحلیلی به اشتراک می‌رود، آن را شفاف اعلام کنید.',
+            },
+          ],
+          footer:
+            'اگر خواستی، قدم بعدی می‌تواند نوشتن متن رسمی‌تر و نهایی برای انتشار روی سایت باشد.',
+        },
+      ],
+    });
   }
 }
 
-function renderEcommerceTrustPage(): string {
-  const checks = [
-    {
-      title: 'هویت و تماس شفاف',
-      description:
-        'نام صاحب کسب‌وکار، آدرس، شماره تلفن ثابت و موبایل، و ایمیل باید واقعی و قابل بررسی باشند.',
-    },
-    {
-      title: 'صفحات حقوقی کامل',
-      description:
-        'صفحات «درباره ما»، «تماس با ما»، «قوانین و مقررات»، «حریم خصوصی» و «مرجوعی/لغو سفارش» را اضافه کنید.',
-    },
-    {
-      title: 'فرایند خرید واقعی',
-      description:
-        'سایت باید امکان ثبت سفارش یا پرداخت آنلاین داشته باشد و قیمت‌ها شفاف و بدون ابهام نمایش داده شوند.',
-    },
-    {
-      title: 'دامنه و مالکیت',
-      description:
-        'دامنه بهتر است به نام خودتان یا شرکتتان باشد و اطلاعات سایت با مدارک ثبتی هم‌خوانی داشته باشد.',
-    },
-    {
-      title: 'امنیت و HTTPS',
-      description:
-        'برای دریافت اینماد دو ستاره، سایت باید روی HTTPS اجرا شود و فرم‌ها و پرداخت درست کار کنند.',
-    },
+type RenderPageInput = {
+  badge: string;
+  description: string;
+  heroTitle: string;
+  primaryAction: { href: string; label: string };
+  sections: PageSection[];
+  secondaryAction: { href: string; label: string };
+  sidebarItems: string[];
+  sidebarTitle: string;
+};
+
+function renderPage(input: RenderPageInput): string {
+  const navigation = [
+    { href: '/', label: 'صفحه اصلی' },
+    { href: '/about', label: 'درباره ما' },
+    { href: '/terms', label: 'قوانین و مقررات' },
+    { href: '/privacy', label: 'حریم خصوصی' },
   ];
 
   return `<!doctype html>
@@ -42,7 +243,7 @@ function renderEcommerceTrustPage(): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f766e">
-  <title>آمادگی برای اینماد | آزمونی</title>
+  <title>${escapeHtml(input.heroTitle)} | آزمونی</title>
   <style>
     :root {
       color-scheme: light;
@@ -53,7 +254,6 @@ function renderEcommerceTrustPage(): string {
       --line: #dbe4ee;
       --card: rgba(255, 255, 255, 0.92);
       --accent: #0f766e;
-      --accent-soft: rgba(15, 118, 110, 0.12);
       --shadow: 0 24px 70px rgba(18, 32, 51, 0.12);
     }
     * { box-sizing: border-box; }
@@ -76,7 +276,7 @@ function renderEcommerceTrustPage(): string {
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 28px;
+      margin-bottom: 18px;
     }
     .brand {
       display: flex;
@@ -101,6 +301,21 @@ function renderEcommerceTrustPage(): string {
       border-radius: 999px;
       color: var(--muted);
       background: rgba(255, 255, 255, 0.74);
+      font-size: 13px;
+    }
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 26px;
+    }
+    .nav a {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.8);
       font-size: 13px;
     }
     .hero {
@@ -164,9 +379,7 @@ function renderEcommerceTrustPage(): string {
     .hero-panel {
       padding: 20px;
       border-radius: 24px;
-      background:
-        linear-gradient(180deg, rgba(15, 118, 110, 0.1), rgba(255, 255, 255, 0.92)),
-        white;
+      background: linear-gradient(180deg, rgba(15, 118, 110, 0.1), rgba(255, 255, 255, 0.92)), white;
       border: 1px solid rgba(15, 118, 110, 0.12);
     }
     .panel-title {
@@ -252,56 +465,71 @@ function renderEcommerceTrustPage(): string {
   <main class="page">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">آ</span><span>آزمونی</span></div>
-      <div class="badge">راهنمای آمادگی برای اینماد</div>
+      <div class="badge">${escapeHtml(input.badge)}</div>
     </header>
-
+    <nav class="nav" aria-label="صفحه‌ها">
+      ${navigation
+        .map(
+          (item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`,
+        )
+        .join('')}
+    </nav>
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-grid">
         <div>
-          <h1 id="hero-title">سایت شما برای گرفتن اینماد باید شفاف، واقعی و قابل پیگیری باشد</h1>
-          <p class="lead">
-            این صفحه یک چک‌لیست عملی است تا قبل از ثبت درخواست اینماد، سایت‌تان از نظر
-            اعتماد، اطلاعات تماس، قوانین فروش و زیرساخت فنی آماده باشد.
-          </p>
+          <h1 id="hero-title">${escapeHtml(input.heroTitle)}</h1>
+          <p class="lead">${escapeHtml(input.description)}</p>
           <div class="cta-row">
-            <a class="button" href="#checklist">دیدن چک‌لیست</a>
-            <a class="button-secondary" href="mailto:support@example.com">نمونه اطلاعات تماس</a>
+            <a class="button" href="${escapeHtml(input.primaryAction.href)}">${escapeHtml(input.primaryAction.label)}</a>
+            <a class="button-secondary" href="${escapeHtml(input.secondaryAction.href)}">${escapeHtml(input.secondaryAction.label)}</a>
           </div>
         </div>
-        <aside class="hero-panel" aria-label="خلاصه الزامات">
-          <h2 class="panel-title">حداقل چیزهایی که باید داشته باشید</h2>
+        <aside class="hero-panel" aria-label="${escapeHtml(input.sidebarTitle)}">
+          <h2 class="panel-title">${escapeHtml(input.sidebarTitle)}</h2>
           <ul class="panel-list">
-            <li>دامنه و هویت ثبت‌شده و قابل تطبیق با مدارک</li>
-            <li>اطلاعات تماس واقعی و قابل پاسخ‌گویی</li>
-            <li>صفحات حقوقی و قوانین خرید</li>
-            <li>پرداخت آنلاین یا فرایند سفارش روشن</li>
+            ${input.sidebarItems
+              .map((item) => `<li>${escapeHtml(item)}</li>`)
+              .join('')}
           </ul>
         </aside>
       </div>
     </section>
-
-    <section class="section" id="checklist" aria-labelledby="checklist-title">
-      <h2 id="checklist-title">چک‌لیست آمادگی برای اینماد</h2>
-      <p class="section-note">
-        هر موردی که پایین‌تر می‌بینید، به‌طور مستقیم به شانس تأیید سایت شما کمک می‌کند.
-      </p>
+    ${input.sections
+      .map(
+        (section) => `
+    <section class="section">
+      <h2>${escapeHtml(section.title)}</h2>
+      <p class="section-note">${escapeHtml(section.description ?? '')}</p>
       <div class="checks">
-        ${checks
+        ${(section.items ?? [])
           .map(
             (item) => `
         <article class="check-card">
-          <h3>${item.title}</h3>
-          <p>${item.description}</p>
+          <h3>${escapeHtml(item.title)}</h3>
+          <p>${escapeHtml(item.description)}</p>
         </article>`,
           )
           .join('')}
       </div>
-      <p class="footer-note">
-        اگر بخواهید، قدم بعدی می‌تواند اضافه کردن «درباره ما»، «قوانین و مقررات» و
-        «حریم خصوصی» به همین سایت باشد تا آماده‌ی بررسی اینماد شوید.
-      </p>
-    </section>
+      ${section.footer ? `<p class="footer-note">${escapeHtml(section.footer)}</p>` : ''}
+    </section>`,
+      )
+      .join('')}
   </main>
 </body>
 </html>`;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[&<>'"]/g,
+    (character) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;',
+      })[character] ?? character,
+  );
 }

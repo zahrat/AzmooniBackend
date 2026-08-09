@@ -9,4 +9,19 @@ export class AppController {
   getHomePage(): string {
     return this.appService.getEcommerceTrustPage();
   }
+
+  @Get('about')
+  getAboutPage(): string {
+    return this.appService.getAboutPage();
+  }
+
+  @Get('terms')
+  getTermsPage(): string {
+    return this.appService.getTermsPage();
+  }
+
+  @Get('privacy')
+  getPrivacyPage(): string {
+    return this.appService.getPrivacyPage();
+  }
 }
