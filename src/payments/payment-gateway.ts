@@ -3,7 +3,7 @@ export const PAYMENT_GATEWAY = Symbol('PAYMENT_GATEWAY');
 export interface PaymentGatewayRequest {
   amountToman: number;
   description: string;
-  email: string;
+  phone: string;
   orderId: number;
 }
 

@@ -34,7 +34,7 @@ export class PaymentsController {
   ) {
     return this.paymentsService.requestBookPayment(
       request.user.id,
-      request.user.email,
+      request.user.phone,
       bookId,
       fresh === 'true',
     );

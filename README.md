@@ -47,10 +47,25 @@ Access levels:
 
 | Method | Path | Access | Description |
 | --- | --- | --- | --- |
-| `POST` | `/users/signup` | Public | Create a user |
-| `POST` | `/users/signin` | Public | Sign in and receive access and refresh tokens |
+| `POST` | `/users/otp/request` | Public | Send a one-time code to a mobile number |
+| `POST` | `/users/otp/verify` | Public | Sign up/sign in with the one-time code |
+| `POST` | `/users/signin` | Public | Sign in with mobile number and password |
 | `POST` | `/users/refresh` | Public | Exchange a refresh token for new tokens |
 | `GET` | `/users/me` | User | Get the authenticated user |
+| `PATCH` | `/users/password` | User | Set or change the optional password |
+
+OTP-first authentication flow:
+
+```text
+POST /users/otp/request  { "phone": "09121234567" }
+POST /users/otp/verify   { "phone": "09121234567", "code": "123456", "name": "Optional" }
+PATCH /users/password    { "newPassword": "StrongPass123!" }
+POST /users/signin       { "phone": "09121234567", "password": "StrongPass123!" }
+```
+
+The verify and sign-in responses contain `hasPassword`, so clients can offer
+password setup after the first successful OTP login. When changing an existing
+password, `/users/password` also requires `currentPassword`.
 
 ### Books
 
@@ -118,9 +133,12 @@ Set the administrator credentials in your local `.env` file. Do not commit
 that file:
 
 ```bash
-ADMIN_EMAIL=admin@example.com
+ADMIN_PHONE=+989121234567
 ADMIN_PASSWORD=use-a-strong-password
 ADMIN_NAME=Admin
+OTP_SECRET=replace-with-a-long-random-secret
+KAVENEGAR_API_KEY=your-kavenegar-api-key
+KAVENEGAR_OTP_TEMPLATE=azmooni-login
 ```
 
 Apply the migrations and run the seed:
@@ -131,8 +149,15 @@ $ npm run seed
 ```
 
 The seed stores the administrator in the `User` table with the `ADMIN` role.
-The password is stored only as a bcrypt hash. If the email already belongs to
+The password is stored only as a bcrypt hash. If the phone already belongs to
 a user, the seed promotes that existing account and preserves its password.
+
+Create and approve a verification template in the Kavenegar dashboard first.
+Its text must contain `%token`; put its English template name in
+`KAVENEGAR_OTP_TEMPLATE`. When `KAVENEGAR_API_KEY` is configured, OTP messages
+use Kavenegar's verification lookup API. Without it, development logs OTP
+values locally, while production refuses to send through the development
+provider.
 
 ## Import books, chapters, and questions from Excel
 

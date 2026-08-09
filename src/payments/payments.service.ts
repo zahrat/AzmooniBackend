@@ -29,7 +29,7 @@ export class PaymentsService {
 
   async requestBookPayment(
     userId: number,
-    email: string,
+    phone: string,
     bookId: number,
     fresh = false,
   ) {
@@ -127,7 +127,7 @@ export class PaymentsService {
       gatewayResult = await this.gateway.requestPayment({
         amountToman: book.priceToman,
         description: `Purchase of book: ${book.title}`,
-        email,
+        phone,
         orderId: payment.id,
       });
     } catch (error) {

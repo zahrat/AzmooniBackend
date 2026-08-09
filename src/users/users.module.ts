@@ -5,6 +5,11 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma.service';
 import { JwtStrategy } from './jwt.strategy';
+import {
+  DevelopmentSmsSender,
+  KavenegarSmsSender,
+  SMS_SENDER,
+} from './sms-sender';
 
 @Module({
   imports: [
@@ -15,6 +20,17 @@ import { JwtStrategy } from './jwt.strategy';
     }),
   ],
   controllers: [UsersController],
-  providers: [UsersService, PrismaService, JwtStrategy],
+  providers: [
+    UsersService,
+    PrismaService,
+    JwtStrategy,
+    {
+      provide: SMS_SENDER,
+      useFactory: () =>
+        process.env.KAVENEGAR_API_KEY?.trim()
+          ? new KavenegarSmsSender()
+          : new DevelopmentSmsSender(),
+    },
+  ],
 })
 export class UsersModule {}

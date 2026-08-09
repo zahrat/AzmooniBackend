@@ -44,7 +44,7 @@ describe('ZarinpalService', () => {
       service.requestPayment({
         amountToman: 10_000,
         description: 'Purchase',
-        email: 'user@example.com',
+        phone: '+989121234567',
         orderId: 12,
       }),
     ).resolves.toEqual({
@@ -65,7 +65,7 @@ describe('ZarinpalService', () => {
           callback_url: 'http://localhost:3000/payments/zarinpal/callback',
           description: 'Purchase',
           metadata: {
-            email: 'user@example.com',
+            mobile: '+989121234567',
             order_id: '12',
           },
         }),
@@ -140,7 +140,7 @@ describe('ZarinpalService', () => {
     await service.requestPayment({
       amountToman: 10_000,
       description: 'Purchase',
-      email: 'user@example.com',
+      phone: '+989121234567',
       orderId: 12,
     });
 

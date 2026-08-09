@@ -36,7 +36,7 @@ export class ZarinpalService implements PaymentGateway, OnModuleInit {
       callback_url: config.callbackUrl,
       description: input.description,
       metadata: {
-        email: input.email,
+        mobile: input.phone,
         order_id: String(input.orderId),
       },
     });

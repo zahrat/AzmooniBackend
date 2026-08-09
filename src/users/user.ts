@@ -1,6 +1,7 @@
 export interface UserResponse {
   id: number;
-  email: string;
+  phone: string;
+  hasPassword: boolean;
 }
 
 export interface AuthResponse extends UserResponse {
@@ -10,12 +11,12 @@ export interface AuthResponse extends UserResponse {
 
 export interface JwtUser {
   id: number;
-  email: string;
+  phone: string;
 }
 
 export interface JwtPayload {
   sub: number;
-  email: string;
+  phone: string;
   type: 'access' | 'refresh';
   jti?: string;
 }

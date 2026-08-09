@@ -9,13 +9,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { CreateUserDTO } from './create-user-dto';
-import { UsersService } from './users.service';
-import type { AuthResponse, JwtUser, UserResponse } from './user';
-import { SignInDTO } from './sign-in-dto';
+import { ChangePasswordDTO } from './change-password-dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RefreshTokenDTO } from './refresh-token-dto';
-import { ChangePasswordDTO } from './change-password-dto';
+import { RequestOtpDTO } from './request-otp-dto';
+import { SignInDTO } from './sign-in-dto';
+import type { AuthResponse, JwtUser } from './user';
+import { UsersService } from './users.service';
+import { VerifyOtpDTO } from './verify-otp-dto';
 
 interface RequestWithUser extends Request {
   user: JwtUser;
@@ -25,14 +26,20 @@ interface RequestWithUser extends Request {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post('/signup')
-  create(@Body() createUserDto: CreateUserDTO): Promise<UserResponse> {
-    return this.usersService.signup(createUserDto);
+  @Post('/otp/request')
+  @HttpCode(HttpStatus.ACCEPTED)
+  requestOtp(@Body() payload: RequestOtpDTO) {
+    return this.usersService.requestOtp(payload);
+  }
+
+  @Post('/otp/verify')
+  verifyOtp(@Body() payload: VerifyOtpDTO): Promise<AuthResponse> {
+    return this.usersService.verifyOtp(payload);
   }
 
   @Post('/signin')
-  signIn(@Body() signInDto: SignInDTO): Promise<AuthResponse> {
-    return this.usersService.signIn(signInDto);
+  signIn(@Body() payload: SignInDTO): Promise<AuthResponse> {
+    return this.usersService.signIn(payload);
   }
 
   @Post('/refresh')

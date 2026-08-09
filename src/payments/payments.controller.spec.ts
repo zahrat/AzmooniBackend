@@ -32,14 +32,14 @@ describe('PaymentsController', () => {
 
   it('starts a book payment for the authenticated user', async () => {
     const request = {
-      user: { id: 7, email: 'user@example.com' },
+      user: { id: 7, phone: '+989121234567' },
     };
 
     await controller.requestBookPayment(request as never, 3, 'true');
 
     expect(paymentsService.requestBookPayment).toHaveBeenCalledWith(
       7,
-      'user@example.com',
+      '+989121234567',
       3,
       true,
     );
@@ -88,7 +88,7 @@ describe('PaymentsController', () => {
 
   it('retries verification for the authenticated payment owner', async () => {
     const request = {
-      user: { id: 7, email: 'user@example.com' },
+      user: { id: 7, phone: '+989121234567' },
     };
 
     await controller.retryVerification(request as never, 21);

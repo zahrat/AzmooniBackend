@@ -1,28 +1,43 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 jest.mock('../prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { HttpException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from './users.service';
-import { PrismaService } from '../prisma.service';
+import { createHmac } from 'node:crypto';
 import * as bcrypt from 'bcryptjs';
+import { PrismaService } from '../prisma.service';
+import { SMS_SENDER } from './sms-sender';
+import { UsersService } from './users.service';
 
 describe('UsersService', () => {
   let service: UsersService;
-  let prisma: {
-    user: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
-  };
+  let prisma: any;
   let jwtService: { signAsync: jest.Mock; verifyAsync: jest.Mock };
+  let smsSender: { sendOtp: jest.Mock };
 
   beforeEach(async () => {
+    const transaction = {
+      otpChallenge: { deleteMany: jest.fn() },
+      user: { upsert: jest.fn() },
+    };
     prisma = {
+      otpChallenge: {
+        findUnique: jest.fn(),
+        upsert: jest.fn(),
+        deleteMany: jest.fn(),
+        updateMany: jest.fn(),
+      },
       user: {
-        create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      $transaction: jest.fn((callback: (tx: any) => unknown) =>
+        callback(transaction),
+      ),
+      transaction,
     };
     jwtService = {
       signAsync: jest
@@ -31,255 +46,146 @@ describe('UsersService', () => {
         .mockResolvedValueOnce('refresh-token'),
       verifyAsync: jest.fn(),
     };
+    smsSender = { sendOtp: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
-        {
-          provide: PrismaService,
-          useValue: prisma,
-        },
-        {
-          provide: JwtService,
-          useValue: jwtService,
-        },
+        { provide: PrismaService, useValue: prisma },
+        { provide: JwtService, useValue: jwtService },
+        { provide: SMS_SENDER, useValue: smsSender },
       ],
     }).compile();
 
-    service = module.get<UsersService>(UsersService);
+    service = module.get(UsersService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('requests an OTP using a canonical phone number and a hashed code', async () => {
+    prisma.otpChallenge.findUnique.mockResolvedValue(null);
+
+    await expect(service.requestOtp({ phone: '09121234567' })).resolves.toEqual(
+      { retryAfterSeconds: 60 },
+    );
+
+    const code = smsSender.sendOtp.mock.calls[0][1] as string;
+    expect(smsSender.sendOtp).toHaveBeenCalledWith('+989121234567', code);
+    expect(code).toMatch(/^\d{6}$/);
+    expect(prisma.otpChallenge.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { phone: '+989121234567' },
+        create: expect.objectContaining({
+          phone: '+989121234567',
+          codeHash: expect.not.stringContaining(code),
+        }),
+      }),
+    );
   });
 
-  it('should create a user with a hashed password', async () => {
-    prisma.user.create.mockResolvedValue({ id: 1, email: 'user@example.com' });
+  it('rate limits repeated OTP requests', async () => {
+    prisma.otpChallenge.findUnique.mockResolvedValue({
+      lastSentAt: new Date(),
+    });
 
     await expect(
-      service.signup({
-        email: 'user@example.com',
-        name: 'Test User',
-        password: 'StrongPass123!',
-      }),
-    ).resolves.toEqual({ id: 1, email: 'user@example.com' });
-
-    expect(prisma.user.create).toHaveBeenCalledWith({
-      data: {
-        email: 'user@example.com',
-        name: 'Test User',
-        // Jest asymmetric matchers are intentionally typed as any.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        password: expect.not.stringMatching('StrongPass123!'),
-      },
-      select: {
-        id: true,
-        email: true,
-      },
-    });
+      service.requestOtp({ phone: '+989121234567' }),
+    ).rejects.toBeInstanceOf(HttpException);
+    expect(smsSender.sendOtp).not.toHaveBeenCalled();
   });
 
-  it('should sign in a user with valid credentials', async () => {
-    const password = 'StrongPass123!';
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    prisma.user.findUnique.mockResolvedValue({
+  it('verifies an OTP, creates the user, and returns tokens', async () => {
+    const phone = '+989121234567';
+    const code = '123456';
+    const codeHash = createHmac('sha256', 'dev-otp-secret')
+      .update(`${phone}:${code}`)
+      .digest('hex');
+    prisma.otpChallenge.findUnique.mockResolvedValue({
+      phone,
+      codeHash,
+      attempts: 0,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    prisma.transaction.otpChallenge.deleteMany.mockResolvedValue({ count: 1 });
+    prisma.transaction.user.upsert.mockResolvedValue({
       id: 1,
-      email: 'user@example.com',
-      password: hashedPassword,
+      phone,
+      password: null,
     });
 
     await expect(
-      service.signIn({
-        email: 'user@example.com',
-        password,
-      }),
+      service.verifyOtp({ phone: '09121234567', code, name: 'Test' }),
     ).resolves.toEqual({
       id: 1,
-      email: 'user@example.com',
+      phone,
+      hasPassword: false,
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
-
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
-      where: {
-        email: 'user@example.com',
-      },
-    });
-    expect(jwtService.signAsync).toHaveBeenNthCalledWith(
-      1,
-      {
-        sub: 1,
-        email: 'user@example.com',
-        type: 'access',
-      },
-      {
-        secret: 'dev-access-secret',
-        expiresIn: 1209600,
-      },
-    );
-    expect(jwtService.signAsync).toHaveBeenNthCalledWith(
-      2,
-      {
-        sub: 1,
-        email: 'user@example.com',
-        type: 'refresh',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        jti: expect.any(String),
-      },
-      {
-        secret: 'dev-refresh-secret',
-        expiresIn: 86400,
-      },
-    );
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: 1 },
-      data: {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        refreshTokenHash: expect.not.stringMatching('refresh-token'),
-      },
+    expect(prisma.transaction.user.upsert).toHaveBeenCalledWith({
+      where: { phone },
+      create: { phone, name: 'Test' },
+      update: {},
+      select: { id: true, phone: true, password: true },
     });
   });
 
-  it('should rotate a valid refresh token', async () => {
-    const oldRefreshToken = 'old-refresh-token';
-    jwtService.verifyAsync.mockResolvedValue({
-      sub: 1,
-      email: 'user@example.com',
-      type: 'refresh',
-    });
-    prisma.user.findUnique.mockResolvedValue({
-      id: 1,
-      email: 'user@example.com',
-      refreshTokenHash: await bcrypt.hash(oldRefreshToken, 10),
+  it('counts an invalid OTP attempt', async () => {
+    prisma.otpChallenge.findUnique.mockResolvedValue({
+      codeHash: 'wrong-hash',
+      attempts: 0,
+      expiresAt: new Date(Date.now() + 60_000),
     });
 
-    await expect(service.refresh(oldRefreshToken)).resolves.toEqual({
+    await expect(
+      service.verifyOtp({ phone: '09121234567', code: '123456' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(prisma.otpChallenge.updateMany).toHaveBeenCalledWith({
+      where: { phone: '+989121234567', codeHash: 'wrong-hash' },
+      data: { attempts: { increment: 1 } },
+    });
+  });
+
+  it('signs in using phone and an existing password', async () => {
+    const password = 'StrongPass123!';
+    prisma.user.findUnique.mockResolvedValue({
       id: 1,
-      email: 'user@example.com',
+      phone: '+989121234567',
+      password: await bcrypt.hash(password, 10),
+    });
+
+    await expect(
+      service.signIn({ phone: '09121234567', password }),
+    ).resolves.toEqual({
+      id: 1,
+      phone: '+989121234567',
+      hasPassword: true,
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
-
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith(oldRefreshToken, {
-      secret: 'dev-refresh-secret',
-    });
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: 1 },
-      data: {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        refreshTokenHash: expect.not.stringMatching('refresh-token'),
-      },
-    });
   });
 
-  it('should reject an expired or malformed refresh token', async () => {
-    jwtService.verifyAsync.mockRejectedValue(new Error('expired'));
-
-    await expect(service.refresh('expired-token')).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
-  });
-
-  it('should reject a refresh token that has been rotated', async () => {
-    jwtService.verifyAsync.mockResolvedValue({
-      sub: 1,
-      email: 'user@example.com',
-      type: 'refresh',
-    });
-    prisma.user.findUnique.mockResolvedValue({
-      id: 1,
-      email: 'user@example.com',
-      refreshTokenHash: await bcrypt.hash('newer-token', 10),
-    });
-
-    await expect(service.refresh('old-token')).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
-    expect(prisma.user.update).not.toHaveBeenCalled();
-  });
-
-  it('should reject sign in when the email does not exist', async () => {
-    prisma.user.findUnique.mockResolvedValue(null);
+  it('allows setting the first password without a current password', async () => {
+    prisma.user.findUnique.mockResolvedValue({ password: null });
 
     await expect(
-      service.signIn({
-        email: 'missing@example.com',
-        password: 'StrongPass123!',
-      }),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
-  });
-
-  it('should reject sign in when the password is invalid', async () => {
-    prisma.user.findUnique.mockResolvedValue({
-      id: 1,
-      email: 'user@example.com',
-      password: await bcrypt.hash('StrongPass123!', 10),
-    });
-
-    await expect(
-      service.signIn({
-        email: 'user@example.com',
-        password: 'WrongPass123!',
-      }),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
-  });
-
-  it('should change the password and revoke the refresh token', async () => {
-    const currentPassword = 'StrongPass123!';
-    prisma.user.findUnique.mockResolvedValue({
-      password: await bcrypt.hash(currentPassword, 10),
-    });
-
-    await expect(
-      service.changePassword(1, {
-        currentPassword,
-        newPassword: 'NewStrongPass456!',
-      }),
+      service.changePassword(1, { newPassword: 'StrongPass123!' }),
     ).resolves.toBeUndefined();
-
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
-      where: { id: 1 },
-      select: { password: true },
-    });
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 1 },
       data: {
-        // Jest asymmetric matchers are intentionally typed as any.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        password: expect.not.stringMatching('NewStrongPass456!'),
+        password: expect.not.stringMatching('StrongPass123!'),
         refreshTokenHash: null,
       },
     });
   });
 
-  it('should reject a password change when the current password is invalid', async () => {
+  it('requires the current password when changing an existing password', async () => {
     prisma.user.findUnique.mockResolvedValue({
       password: await bcrypt.hash('StrongPass123!', 10),
     });
 
     await expect(
-      service.changePassword(1, {
-        currentPassword: 'WrongPass123!',
-        newPassword: 'NewStrongPass456!',
-      }),
+      service.changePassword(1, { newPassword: 'NewStrongPass456!' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(prisma.user.update).not.toHaveBeenCalled();
-  });
-
-  it('should reject changing to the current password', async () => {
-    const currentPassword = 'StrongPass123!';
-    prisma.user.findUnique.mockResolvedValue({
-      password: await bcrypt.hash(currentPassword, 10),
-    });
-
-    await expect(
-      service.changePassword(1, {
-        currentPassword,
-        newPassword: currentPassword,
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 });

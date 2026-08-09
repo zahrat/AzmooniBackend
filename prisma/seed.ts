@@ -8,22 +8,22 @@ import { SeedBook, seedBooks } from './seed-data';
 const validOptions = new Set(['A', 'B', 'C', 'D']);
 
 interface AdminSeedConfig {
-  email: string;
+  phone: string;
   name: string;
   password: string;
 }
 
 function getAdminSeedConfig(): AdminSeedConfig | null {
-  const email = process.env.ADMIN_EMAIL?.trim();
+  const rawPhone = process.env.ADMIN_PHONE?.trim();
   const password = process.env.ADMIN_PASSWORD;
 
-  if (!email && !password) {
+  if (!rawPhone && !password) {
     return null;
   }
 
-  if (!email || !password) {
+  if (!rawPhone || !password) {
     throw new Error(
-      'ADMIN_EMAIL and ADMIN_PASSWORD must both be set to seed an admin',
+      'ADMIN_PHONE and ADMIN_PASSWORD must both be set to seed an admin',
     );
   }
 
@@ -31,8 +31,19 @@ function getAdminSeedConfig(): AdminSeedConfig | null {
     throw new Error('ADMIN_PASSWORD must contain at least 12 characters');
   }
 
+  if (!/^(?:\+98|0098|98|0)?9\d{9}$/.test(rawPhone)) {
+    throw new Error('ADMIN_PHONE must be a valid Iranian mobile number');
+  }
+
+  const digits = rawPhone.replace(/^\+/, '').replace(/^00/, '');
+  const phone = digits.startsWith('0')
+    ? `+98${digits.slice(1)}`
+    : digits.startsWith('98')
+      ? `+${digits}`
+      : `+98${digits}`;
+
   return {
-    email,
+    phone,
     password,
     name: process.env.ADMIN_NAME?.trim() || 'Admin',
   };
@@ -104,8 +115,8 @@ async function seed() {
     );
     console.log(
       adminConfig
-        ? `Admin seed configuration is valid for ${adminConfig.email}.`
-        : 'Admin seed skipped: ADMIN_EMAIL and ADMIN_PASSWORD are not set.',
+        ? `Admin seed configuration is valid for ${adminConfig.phone}.`
+        : 'Admin seed skipped: ADMIN_PHONE and ADMIN_PASSWORD are not set.',
     );
     return;
   }
@@ -127,9 +138,9 @@ async function seed() {
     await prisma.$transaction(async (transaction) => {
       if (adminConfig && adminPasswordHash) {
         await transaction.user.upsert({
-          where: { email: adminConfig.email },
+          where: { phone: adminConfig.phone },
           create: {
-            email: adminConfig.email,
+            phone: adminConfig.phone,
             name: adminConfig.name,
             password: adminPasswordHash,
             role: UserRole.ADMIN,
@@ -208,7 +219,7 @@ async function seed() {
       )} questions are ready.`,
     );
     if (adminConfig) {
-      console.log(`Admin account is ready: ${adminConfig.email}`);
+      console.log(`Admin account is ready: ${adminConfig.phone}`);
     }
   } finally {
     await prisma.$disconnect();

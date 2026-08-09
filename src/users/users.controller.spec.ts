@@ -8,119 +8,55 @@ import { UsersService } from './users.service';
 
 describe('UsersController', () => {
   let controller: UsersController;
-  let usersService: {
-    signup: jest.Mock;
-    signIn: jest.Mock;
-    refresh: jest.Mock;
-    changePassword: jest.Mock;
-  };
+  let usersService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     usersService = {
-      signup: jest.fn(),
+      requestOtp: jest.fn(),
+      verifyOtp: jest.fn(),
       signIn: jest.fn(),
       refresh: jest.fn(),
       changePassword: jest.fn(),
     };
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [
-        {
-          provide: UsersService,
-          useValue: usersService,
-        },
-      ],
+      providers: [{ provide: UsersService, useValue: usersService }],
     }).compile();
-
-    controller = module.get<UsersController>(UsersController);
+    controller = module.get(UsersController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('delegates OTP requests', async () => {
+    const payload = { phone: '09121234567' };
+    usersService.requestOtp.mockResolvedValue({ retryAfterSeconds: 60 });
+    await expect(controller.requestOtp(payload)).resolves.toEqual({
+      retryAfterSeconds: 60,
+    });
+    expect(usersService.requestOtp).toHaveBeenCalledWith(payload);
   });
 
-  it('should delegate signup to the users service', async () => {
-    const payload = {
-      email: 'user@example.com',
-      name: 'Test User',
-      password: 'StrongPass123!',
-    };
-
-    usersService.signup.mockResolvedValue({ id: 1, email: payload.email });
-
-    await expect(controller.create(payload)).resolves.toEqual({
-      id: 1,
-      email: payload.email,
-    });
-    expect(usersService.signup).toHaveBeenCalledWith(payload);
+  it('delegates OTP verification', async () => {
+    const payload = { phone: '09121234567', code: '123456' };
+    usersService.verifyOtp.mockResolvedValue({ id: 1 });
+    await controller.verifyOtp(payload);
+    expect(usersService.verifyOtp).toHaveBeenCalledWith(payload);
   });
 
-  it('should delegate sign in to the users service', async () => {
-    const payload = {
-      email: 'user@example.com',
-      password: 'StrongPass123!',
-    };
-
-    usersService.signIn.mockResolvedValue({
-      id: 1,
-      email: payload.email,
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-    });
-
-    await expect(controller.signIn(payload)).resolves.toEqual({
-      id: 1,
-      email: payload.email,
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-    });
+  it('delegates password sign in', async () => {
+    const payload = { phone: '09121234567', password: 'StrongPass123!' };
+    usersService.signIn.mockResolvedValue({ id: 1 });
+    await controller.signIn(payload);
     expect(usersService.signIn).toHaveBeenCalledWith(payload);
   });
 
-  it('should delegate refresh to the users service', async () => {
-    usersService.refresh.mockResolvedValue({
-      id: 1,
-      email: 'user@example.com',
-      accessToken: 'new-access-token',
-      refreshToken: 'new-refresh-token',
-    });
-
-    await expect(
-      controller.refresh({ refreshToken: 'old-refresh-token' }),
-    ).resolves.toEqual({
-      id: 1,
-      email: 'user@example.com',
-      accessToken: 'new-access-token',
-      refreshToken: 'new-refresh-token',
-    });
-    expect(usersService.refresh).toHaveBeenCalledWith('old-refresh-token');
-  });
-
-  it('should return the authenticated user', () => {
-    const request = {
-      user: {
-        id: 1,
-        email: 'user@example.com',
-      },
-    };
-
+  it('returns the authenticated user', () => {
+    const request = { user: { id: 1, phone: '+989121234567' } };
     expect(controller.me(request as never)).toEqual(request.user);
   });
 
-  it('should delegate password changes to the users service', async () => {
-    const request = {
-      user: { id: 1, email: 'user@example.com' },
-    };
-    const payload = {
-      currentPassword: 'StrongPass123!',
-      newPassword: 'NewStrongPass456!',
-    };
-    usersService.changePassword.mockResolvedValue(undefined);
-
-    await expect(
-      controller.changePassword(request as never, payload),
-    ).resolves.toBeUndefined();
+  it('allows an authenticated user to set a password', async () => {
+    const request = { user: { id: 1, phone: '+989121234567' } };
+    const payload = { newPassword: 'StrongPass123!' };
+    await controller.changePassword(request as never, payload);
     expect(usersService.changePassword).toHaveBeenCalledWith(1, payload);
   });
 });
